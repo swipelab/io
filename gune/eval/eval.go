@@ -50,7 +50,6 @@ func evalProgram(program ast.Program) RuntimeVal {
 }
 
 func evalFloatBinaryExpression(lhs *RuntimeFloat, rhs *RuntimeFloat, operator string) RuntimeVal {
-
 	switch operator {
 	case "+":
 		return &RuntimeFloat{Value: lhs.Value + rhs.Value}
@@ -60,11 +59,14 @@ func evalFloatBinaryExpression(lhs *RuntimeFloat, rhs *RuntimeFloat, operator st
 		return &RuntimeFloat{Value: lhs.Value * rhs.Value}
 	case "/":
 		{
-			//TODO: division by zero
+			if rhs.Value == 0.0 {
+				panic("division by zero")
+			}
+
 			return &RuntimeFloat{Value: lhs.Value / rhs.Value}
 		}
 	}
-	panic("ups")
+	panic("unkown float operator")
 }
 
 func evalBinaryExpression(expr ast.BinaryExpression) RuntimeVal {

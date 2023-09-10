@@ -11,7 +11,8 @@ import (
 )
 
 func repl() {
-	fmt.Println("\nRepl IO v0.0.1")
+	fmt.Println()
+	fmt.Println("io.repl v0.0.1")
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Printf("# ")
