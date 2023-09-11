@@ -81,16 +81,16 @@ func evalBinaryExpression(expr ast.BinaryExpression) RuntimeVal {
 }
 
 func Eval(node ast.Expression) RuntimeVal {
-	switch node.Kind() {
-	case ast.NodeKind_NumericLiteral:
-		return &RuntimeFloat{Value: node.(*ast.NumericLiteral).Value}
-	case ast.NodeKind_Nil:
+	switch val := node.(type) {
+	case *ast.NumericLiteral:
+		return &RuntimeFloat{Value: val.Value}
+	case *ast.NilLiteral:
 		return &RuntimeNil{}
-	case ast.NodeKind_BinaryExpression:
-		return evalBinaryExpression(*node.(*ast.BinaryExpression))
-	case ast.NodeKind_Program:
-		return evalProgram(*node.(*ast.Program))
+	case *ast.BinaryExpression:
+		return evalBinaryExpression(*val)
+	case *ast.Program:
+		return evalProgram(*val)
 	default:
-		panic(fmt.Sprintf("Ups AST %s", node))
+		panic("ups")
 	}
 }
