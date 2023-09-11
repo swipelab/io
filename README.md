@@ -8,4 +8,4 @@
  - [x] binary operators: `*`, `+`, `-`, `/`
  - [ ] generic: `Array`, `List`, `Map`, `Set`, `Slice`, ...
  - [ ] complex: struct,
- - [ ] 
+ - [x] nil
