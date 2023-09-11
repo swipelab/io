@@ -1,10 +1,11 @@
 
-grammar:
-	comments: //, /*...*/
-	scope: {...}
-  equality: != , ==
-	logical operators: &&, ||, ^^
-	scalar: i, u, f
-
-	generic: Array, List, Map, Set, Slice, ...
-	complex: struct,
+## grammar
+ - [ ] comments: `//, /*...*/`
+ - [ ] scope: `{...}`
+ - [ ] equality: `!=` , `==`
+ - [ ] logical operators: `&&`, `||`, `^^`
+ - [ ] scalar types: `i`, `u`, `f`, `bool`
+ - [x] binary operators: `*`, `+`, `-`, `/`
+ - [ ] generic: `Array`, `List`, `Map`, `Set`, `Slice`, ...
+ - [ ] complex: struct,
+ - [ ] 
