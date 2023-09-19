@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 
@@ -19,7 +20,14 @@ func repl() {
 		input, _ := reader.ReadString('\n')
 		input = strings.Replace(input, "\n", "", -1)
 		program := ast.BuildAST(input)
-		result := eval.Eval(&program).Marshal()
+
+		ctx := eval.NewCtx()
+		_, e := ctx.DeclareVar("pi", &eval.RuntimeFloat{Value: math.Pi})
+		if e != nil {
+			panic(e)
+		}
+
+		result := eval.Eval(&program, ctx).Marshal()
 		fmt.Printf("> %s\n", result)
 	}
 }

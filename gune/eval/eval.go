@@ -41,15 +41,15 @@ func (e *RuntimeNil) Marshal() string {
 	return "nil"
 }
 
-func evalProgram(program ast.Program) RuntimeVal {
+func evalProgram(program ast.Program, ctx Ctx) RuntimeVal {
 	var lastEval RuntimeVal = &RuntimeNil{}
 	for _, e := range program.Body {
-		lastEval = Eval(e)
+		lastEval = Eval(e, ctx)
 	}
 	return lastEval
 }
 
-func evalFloatBinaryExpression(lhs *RuntimeFloat, rhs *RuntimeFloat, operator string) RuntimeVal {
+func evalFloatBinaryExpression(lhs *RuntimeFloat, rhs *RuntimeFloat, operator string, ctx Ctx) RuntimeVal {
 	switch operator {
 	case "+":
 		return &RuntimeFloat{Value: lhs.Value + rhs.Value}
@@ -69,27 +69,37 @@ func evalFloatBinaryExpression(lhs *RuntimeFloat, rhs *RuntimeFloat, operator st
 	panic("unkown float operator")
 }
 
-func evalBinaryExpression(expr ast.BinaryExpression) RuntimeVal {
-	lhs := Eval(expr.Left)
-	rhs := Eval(expr.Right)
+func evalBinaryExpression(expr ast.BinaryExpression, ctx Ctx) RuntimeVal {
+	lhs := Eval(expr.Left, ctx)
+	rhs := Eval(expr.Right, ctx)
 
 	if lhs.Kind() == Runtime_Float || rhs.Kind() == Runtime_Float {
-		return evalFloatBinaryExpression(lhs.(*RuntimeFloat), rhs.(*RuntimeFloat), expr.Operator)
+		return evalFloatBinaryExpression(lhs.(*RuntimeFloat), rhs.(*RuntimeFloat), expr.Operator, ctx)
 	}
 
 	return &RuntimeNil{}
 }
 
-func Eval(node ast.Expression) RuntimeVal {
+func evalIdentifier(ident ast.Identifier, ctx Ctx) RuntimeVal {
+	v, e := ctx.lookupVar(ident.Symbol)
+	if e != nil {
+		panic(e)
+	}
+	return v
+}
+
+func Eval(node ast.Expression, ctx Ctx) RuntimeVal {
 	switch val := node.(type) {
 	case *ast.NumericLiteral:
 		return &RuntimeFloat{Value: val.Value}
 	case *ast.NilLiteral:
 		return &RuntimeNil{}
 	case *ast.BinaryExpression:
-		return evalBinaryExpression(*val)
+		return evalBinaryExpression(*val, ctx)
+	case *ast.Identifier:
+		return evalIdentifier(*val, ctx)
 	case *ast.Program:
-		return evalProgram(*val)
+		return evalProgram(*val, ctx)
 	default:
 		panic("ups")
 	}

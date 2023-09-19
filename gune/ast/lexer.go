@@ -3,7 +3,6 @@ package ast
 import (
 	"fmt"
 	"slices"
-	"strings"
 	"unicode"
 )
 
@@ -53,13 +52,13 @@ func Tokenize(source string) []Token {
 	}
 
 	tokens := make([]Token, 0)
-	src := strings.Split(source, "")
+	src := source
 
 	at := func() string {
-		return src[0]
+		return src[0:1]
 	}
 	shift := func() string {
-		val := src[0]
+		val := src[0:1]
 		src = src[1:]
 		return val
 	}
@@ -86,7 +85,7 @@ func Tokenize(source string) []Token {
 				push(TokenKind_Number, value)
 			} else if isAlpha(at()) {
 				ident := ""
-				for len(src) > 0 && (isInt(at()) && isAlpha(at())) {
+				for len(src) > 0 && (isInt(at()) || isAlpha(at())) {
 					ident += shift()
 				}
 

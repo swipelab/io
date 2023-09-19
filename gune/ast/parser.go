@@ -36,7 +36,7 @@ func BuildAST(source string) Program {
 	}
 
 	parseExpression := func() Expression {
-		panic(errors.New("Hoisting"))
+		panic(errors.New("hoisting"))
 	}
 
 	parsePrimaryExpression := func() Expression {
