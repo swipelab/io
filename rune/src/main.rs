@@ -1,10 +1,12 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::io::Write;
 use std::ops::{Add, Div, Mul, Sub};
 use std::sync::{Mutex};
 use std::process::exit;
+use std::rc::Rc;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum TokenKind {
   Let,
   Nil,
@@ -17,76 +19,145 @@ enum TokenKind {
   EOF,
 }
 
+#[derive(Debug, Clone)]
 struct Token {
   kind: TokenKind,
   value: String,
 }
 
-
-trait Expression {
-  fn eval(&self) -> RuntimeValue;
+#[derive(Debug, Clone)]
+enum Expr {
+  Program(Vec<Expr>),
+  Nil,
+  Number(String),
+  BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
+  Identifier(String),
 }
 
-#[derive(Debug)]
-enum RuntimeValue {
+#[derive(Debug, Copy, Clone)]
+enum Result {
   Nil,
   Float(f64),
   Int(i64),
 }
 
-struct ProgramExpression {
-  body: Vec<Box<dyn Expression>>,
+fn parse(tokens: Vec<Token>) -> Expr {
+  ProgramParser { tokens, index: Mutex::new(0) }.parse()
 }
 
-struct BinaryExpression {
-  left: Box<dyn Expression>,
-  right: Box<dyn Expression>,
-  operator: String,
+
+struct ProgramParser {
+  tokens: Vec<Token>,
+  index: Mutex<usize>,
 }
 
-struct IdentifierExpression {
-  symbol: String,
-}
-
-struct NumericLiteral {
-  value: String,
-}
-
-struct NilLiteral {}
-
-impl Expression for NilLiteral {
-  fn eval(&self) -> RuntimeValue {
-    RuntimeValue::Nil
+impl ProgramParser {
+  fn parse(&self) -> Expr {
+    let mut body = vec![];
+    while self.more() {
+      body.push(self.parse_statement())
+    }
+    Expr::Program(body)
   }
-}
 
-impl Expression for NumericLiteral {
-  fn eval(&self) -> RuntimeValue {
-    if self.value.chars().any(|e| e == '.') {
-      RuntimeValue::Float(self.value.parse::<f64>().unwrap())
-    } else {
-      RuntimeValue::Int(self.value.parse::<i64>().unwrap())
+  fn at(&self) -> Token {
+    let i = self.index.lock().unwrap();
+    self.tokens[*i].clone()
+  }
+
+  fn eat(&self) -> Token {
+    let token = self.at();
+    let mut i = self.index.lock().unwrap();
+    *i += 1;
+    token
+  }
+
+  fn expect(&self, kind: TokenKind) -> Token {
+    let prev = self.eat();
+    if prev.kind != kind {
+      println!("unexpected {:?}", prev.kind)
+    }
+    prev
+  }
+
+  fn more(&self) -> bool {
+    self.at().kind != TokenKind::EOF
+  }
+
+  fn parse_expression(&self) -> Expr {
+    self.parse_additive_expression()
+  }
+
+  fn parse_statement(&self) -> Expr {
+    self.parse_expression()
+  }
+
+  fn parse_primary_expression(&self) -> Expr {
+    let kind = self.at().kind;
+    match kind {
+      TokenKind::Nil => {
+        self.eat();
+        Expr::Nil {}
+      }
+      TokenKind::Number => {
+        Expr::Number(
+          self.eat().value.clone()
+        )
+      }
+      TokenKind::Identifier => {
+        Expr::Identifier(self.eat().value.clone())
+      }
+      TokenKind::OpenParenthesis => {
+        self.eat();
+        let expr = self.parse_expression();
+        self.expect(TokenKind::CloseParenthesis);
+        expr
+      }
+      _ => Expr::Nil
     }
   }
-}
 
-impl Expression for IdentifierExpression {
-  fn eval(&self) -> RuntimeValue {
-    panic!("not yet")
-  }
-}
-
-impl Expression for ProgramExpression {
-  fn eval(&self) -> RuntimeValue {
-    let mut result = RuntimeValue::Nil;
-    for expr in self.body.iter() {
-      result = expr.eval()
+  fn parse_multiplicative_expression(&self) -> Expr {
+    let mut left = self.parse_primary_expression();
+    loop {
+      match self.at().value.as_str() {
+        "*" | "/" => {
+          let op = self.eat().value.clone();
+          let right = self.parse_primary_expression();
+          let copy = left.clone();
+          left = Expr::BinaryExpr {
+            left: Box::new(copy),
+            right: Box::new(right),
+            op,
+          }
+        }
+        _ => break
+      }
     }
-    result
+    return left;
+  }
+
+  fn parse_additive_expression(&self) -> Expr {
+    let mut left = self.parse_multiplicative_expression();
+    loop {
+      match self.at().value.as_str() {
+        "+" | "-" => {
+          let op = self.eat().value.clone();
+          let right = self.parse_multiplicative_expression();
+          left = Expr::BinaryExpr {
+            left: Box::new(left),
+            right: Box::new(right),
+            op,
+          }
+        }
+        _ => break
+      }
+    }
+    return left;
   }
 }
 
-fn eval_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
+fn eval_number_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
   where T: Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
 {
   match op {
@@ -98,139 +169,59 @@ fn eval_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
   }
 }
 
-impl Expression for BinaryExpression {
-  fn eval(&self) -> RuntimeValue {
-    let lhs = self.left.eval();
-    let rhs = self.right.eval();
+fn eval_program(body: Vec<Expr>, ctx: Rc<Context>) -> Result {
+  let mut result = Result::Nil;
+  for expr in body {
+    result = eval(expr, ctx.clone());
+  }
+  return result;
+}
 
-    match lhs {
-      RuntimeValue::Nil => {}
-      RuntimeValue::Float(lv) => {
-        match rhs {
-          RuntimeValue::Nil => {}
-          RuntimeValue::Float(rv) => return RuntimeValue::Float(eval_binary_operation(lv, rv, self.operator.as_str())),
-          RuntimeValue::Int(rv) => return RuntimeValue::Float(eval_binary_operation(lv, rv as f64, self.operator.as_str())),
-        }
-      }
-      RuntimeValue::Int(lv) => {
-        match rhs {
-          RuntimeValue::Nil => {}
-          RuntimeValue::Float(rv) => return RuntimeValue::Float(eval_binary_operation(lv as f64, rv, self.operator.as_str())),
-          RuntimeValue::Int(rv) => return RuntimeValue::Int(eval_binary_operation(lv, rv, self.operator.as_str())),
-        }
-      }
-    }
-    RuntimeValue::Nil
+fn eval_number(value: String) -> Result {
+  if value.chars().any(|e| e == '.') {
+    Result::Float(value.parse::<f64>().unwrap())
+  } else {
+    Result::Int(value.parse::<i64>().unwrap())
   }
 }
 
-fn built_ast(tokens: Vec<Token>) -> Box<dyn Expression> {
-  let mut body: Vec<Box<dyn Expression>> = vec![];
+fn eval_binary_expression(left: Expr, right: Expr, op: String, ctx: Rc<Context>) -> Result {
+  let lhs = eval(left, ctx.clone());
+  let rhs = eval(right, ctx.clone());
 
-  let index = Mutex::new(0);
-
-  let at = || -> &Token {
-    let i = index.lock().unwrap();
-    &tokens[*i]
-  };
-
-  let eat = || {
-    let token = at();
-    let mut i = index.lock().unwrap();
-    *i += 1;
-    token
-  };
-
-  let expect = |kind: TokenKind| -> &Token{
-    let prev = eat();
-
-    if prev.kind != kind {
-      println!("unexpected {:?}", prev.kind)
+  match lhs {
+    Result::Nil => {}
+    Result::Float(l) => {
+      match rhs {
+        Result::Nil => {}
+        Result::Float(r) => return Result::Float(eval_number_binary_operation(l, r, op.as_str())),
+        Result::Int(r) => return Result::Float(eval_number_binary_operation(l, r as f64, op.as_str())),
+      }
     }
-    prev
-  };
-
-  let more = || -> bool {
-    at().kind != TokenKind::EOF
-  };
-
-  let mut parse_expression = || -> Box<dyn Expression> {
-    panic!("oh no...")
-  };
-
-  let parse_primary_expression = || -> Box<dyn Expression> {
-    match at().kind {
-      TokenKind::Nil => {
-        eat();
-        Box::new(NilLiteral {})
+    Result::Int(l) => {
+      match rhs {
+        Result::Nil => {}
+        Result::Float(r) => return Result::Float(eval_number_binary_operation(l as f64, r, op.as_str())),
+        Result::Int(r) => return Result::Int(eval_number_binary_operation(l, r, op.as_str())),
       }
-      TokenKind::Number => {
-        Box::new(NumericLiteral {
-          value: eat().value.clone()
-        })
-      }
-      TokenKind::Identifier => {
-        Box::new(IdentifierExpression {
-          symbol: eat().value.clone()
-        })
-      }
-      TokenKind::OpenParenthesis => {
-        eat();
-        let expr = parse_expression();
-        expect(TokenKind::CloseParenthesis);
-        expr
-      }
-      _ => { return Box::new(NilLiteral {}); }
     }
-  };
-
-  let parse_multiplicative_expression = || -> Box<dyn Expression> {
-    let mut left = parse_primary_expression();
-    match at().value.as_str() {
-      "*" | "/" => {
-        let operator = eat().value.clone();
-        let right = parse_primary_expression();
-        left = Box::new(BinaryExpression {
-          left,
-          right,
-          operator,
-        })
-      }
-      _ => {}
-    }
-    left
-  };
-
-  let parse_additive_expression = || -> Box<dyn Expression> {
-    let mut left = parse_multiplicative_expression();
-    match at().value.as_str() {
-      "+" | "-" => {
-        let operator = eat().value.clone();
-        let right = parse_multiplicative_expression();
-        left = Box::new(BinaryExpression {
-          left,
-          right,
-          operator,
-        })
-      }
-      _ => {}
-    }
-    left
-  };
-
-  let parse_expression = || -> Box<dyn Expression> {
-    parse_additive_expression()
-  };
-
-  let parse_statement = || -> Box<dyn Expression> {
-    parse_expression()
-  };
-
-  while more() {
-    body.push(parse_statement())
   }
+  Result::Nil
+}
 
-  return Box::new(ProgramExpression { body });
+struct Context {
+  parent: Option<Rc<Context>>,
+  vars: HashMap<String, Result>,
+}
+
+fn eval(node: Expr, ctx: Rc<Context>) -> Result {
+  match node {
+    Expr::Program(e) => eval_program(e, ctx),
+    Expr::Nil => Result::Nil,
+    Expr::Number(e) => eval_number(e),
+    Expr::BinaryExpr { left, right, op } => eval_binary_expression(*left, *right, op, ctx),
+    Expr::Identifier(e) => *ctx.vars.get(e.as_str()).unwrap(),
+  }
 }
 
 fn tokenize(source: String) -> Vec<Token> {
@@ -333,15 +324,26 @@ fn main() {
   println!();
   println!("io.repl v.0.0.1");
   loop {
+    print!("$ ");
+    std::io::stdout().flush().unwrap();
+
     let mut line = String::new();
     std::io::stdin().read_line(&mut line).unwrap();
     match line.as_str() {
       "exit" => { exit(0); }
       e => {
-        let tokens = tokenize(e.to_owned());
-        let program = built_ast(tokens);
-        let result = program.eval();
-        println!("{:?}", result)
+        let source = e.to_owned();
+        let tokens = tokenize(source);
+        let program = parse(tokens);
+        let result = eval(
+          program,
+          Rc::new(Context {
+            parent: None,
+            vars: HashMap::from([
+              ("pi".to_owned(), Result::Float(std::f64::consts::PI))
+            ]),
+          }));
+        println!("> {:?}", result);
       }
     }
   }
