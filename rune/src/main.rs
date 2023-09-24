@@ -2,6 +2,8 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::{Mutex};
 use std::process::exit;
+use std::ptr::null;
+use crate::TokenKind::Identifier;
 
 enum TokenKind {
   Let,
@@ -12,11 +14,97 @@ enum TokenKind {
   Equals,
   OpenParenthesis,
   CloseParenthesis,
+  EOF,
 }
 
 struct Token {
   kind: TokenKind,
   value: String,
+}
+
+
+trait Expression {}
+
+struct ProgramExpression {
+  body: Vec<dyn Expression>,
+}
+
+struct BinaryExpression {
+  left: dyn Expression,
+  right: dyn Expression,
+  operator: String,
+}
+
+struct IdentifierExpression {
+  symbol: String,
+}
+
+struct NumericLiteral {
+  value: String,
+}
+
+struct NilLiteral {}
+
+fn built_ast(tokens: Vec<Token>) -> ProgramExpression {
+  let body: Vec<dyn Expression> = vec![];
+
+  let index = Mutex::new(0);
+
+  let at = || -> &Token {
+    let i = index.lock().unwrap();
+    &tokens[*i]
+  };
+
+  let eat = || {
+    let token = at();
+    let i = index.lock().unwrap();
+    *i += 1;
+    token
+  };
+
+  let expect = |kind: TokenKind| -> &Token{
+    let prev = eat();
+
+    if &prev.kind != kind {
+      println!("unexpected {}", &prev.kind)
+    }
+    prev
+  };
+
+  let more = || -> bool {
+    at().kind != TokenKind::EOF
+  };
+
+  let mut parse_expression = || -> dyn Expression {};
+  let parse_primary_expression = || -> dyn Expression {
+    match at().kind {
+      TokenKind::Nil => {
+        eat();
+        NilLiteral {}
+      }
+      TokenKind::Number => {
+        NumericLiteral {
+          value: eat().value.clone()
+        }
+      }
+      TokenKind::Identifier => {
+        IdentifierExpression {
+          symbol: eat().value.clone()
+        };
+      }
+      TokenKind::OpenParenthesis => {
+        eat();
+        let expr = parse_expression();
+        expect(TokenKind::CloseParenthesis);
+        expr
+      }
+      _ => { return null(); }
+    }
+  };
+
+  while more() {}
+
+  return ProgramExpression { body };
 }
 
 fn tokenize(source: String) -> Vec<Token> {
@@ -103,7 +191,7 @@ fn tokenize(source: String) -> Vec<Token> {
       }
     }
   }
-
+  push(TokenKind::EOF, "EOF");
   return tokens;
 }
 
@@ -117,8 +205,7 @@ fn main() {
       "exit" => { exit(0); }
       e => {
         let tokens = tokenize(e.to_owned());
-        let token_len = tokens.len();
-        println!("{token_len}");
+        let program = built_ast(tokens);
       }
     }
   }
