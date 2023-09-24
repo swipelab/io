@@ -9,3 +9,8 @@
  - [ ] generic: `Array`, `List`, `Map`, `Set`, `Slice`, ...
  - [ ] complex: struct,
  - [x] nil
+
+## functions
+
+```io
+```

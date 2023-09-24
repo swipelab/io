@@ -3,12 +3,10 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
-	"os"
-	"strings"
-
 	"github.com/swipelab/io/gune/ast"
 	"github.com/swipelab/io/gune/eval"
+	"math"
+	"os"
 )
 
 func repl() {
@@ -18,7 +16,6 @@ func repl() {
 	for {
 		fmt.Printf("# ")
 		input, _ := reader.ReadString('\n')
-		input = strings.Replace(input, "\n", "", -1)
 		program := ast.BuildAST(input)
 
 		ctx := eval.NewCtx()
@@ -35,3 +32,24 @@ func repl() {
 func main() {
 	repl()
 }
+
+/*
+
+//funcs.io
+pub fn getContact(i32 contactId) -> i32 {
+  return v1+v2;
+}
+
+pub fn makeFamily(i32 man, i31 woman, i15 dog) -> isize {
+ /// crazy
+}
+
+import 'funcs.io' as funcs;
+
+pub fn main() -> i32 {
+  man = 42;
+  family = 42.funcs.makeFamily(41, 40);
+  print(a.funfoo())
+}
+
+*/

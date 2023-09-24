@@ -55,10 +55,10 @@ func Tokenize(source string) []Token {
 	src := source
 
 	at := func() string {
-		return src[0:1]
+		return src[:1]
 	}
 	shift := func() string {
-		val := src[0:1]
+		val := src[:1]
 		src = src[1:]
 		return val
 	}
