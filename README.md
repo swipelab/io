@@ -23,8 +23,8 @@
 // ---Alpha|-----Red|---Green|----Blue|
 type Color = union[
   value: u32,
-  :{ a: u8, r: u8, g: u8, b: u8, },
-  :{  : u8, rgb: u24, },
+  :struct{ a: u8, r: u8, g: u8, b: u8, },
+  :struct{  : u8, rgb: u24, },
 ];
 
 // Alias
@@ -39,7 +39,7 @@ type Info = {
 type Things = enum[
   Car,
   Truck,
-  Bike: {info: Info, quantity: u32},
+  Bike: struct{info: Info, quantity: u32},
   Paint: Color,  
 ];
 
