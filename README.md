@@ -58,7 +58,7 @@ groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
   })
 }
 
-sort<T>: (items: Vec<T>) {
+sort<T>: (mut items: Vec<T>) {
   for i = 0; i < items.len(); i+=1 {
     max = i;
     // find max
@@ -79,6 +79,9 @@ main : () = {
     bar
   }
 
-  io::cout << "hello " << foo().to_string() << "\n";
+  io.cout << "hello " << foo().to_string() << "\n";
+
+  i = Vec( 3, 5, 6, 7, 8, 1, 2)..sort();
+  io.cout << "Sorted: " << i.to_string() << "\n";
 }
 ```
