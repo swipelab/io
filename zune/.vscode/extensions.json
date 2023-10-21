@@ -1,0 +1,6 @@
+{
+  "recommendations": [
+    "ianic.zig-language-extras",
+    "ziglang.vscode-zig"
+  ],
+}
