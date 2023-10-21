@@ -21,8 +21,6 @@
 [function_name] : [function_type] = [implementation]
 
 ```io
-// Types
-
 // Union
 // ---Alpha|-----Red|---Green|----Blue|
 type Color = union[
@@ -32,28 +30,33 @@ type Color = union[
 ];
 
 // Alias
-type WheelSizes : Vec<i32>;
+type WheelSizes = Vec<i32>;
 
 // Struct
-type Info : struct{  
+type Info = struct{  
   description: Utf8;
 }
 
 // Experimental ADT 
 // using <u8> for descriminator
-type Things : enum<u8>[ 
+type Things = enum<u8>[ 
   Car           = 1,
   Truck         = 2,
   Bike          = 3,
   Color: Color  = 4,  
 ];
 
+type Option<T> = enum[
+  Some(T),
+  None,
+]
+
 groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
-  items.fold(Map.new(), (collector, item) {
+  items.fold(Map(), (collector, item) = {
     item_key = key(item);
     match collector.get(item_key) {
       Some(vec) => vec,              
-      None => collector[item_key] = Vec.new(),
+      None => collector[item_key] = Vec(),
     }..push(item)
   })
 }
@@ -70,11 +73,13 @@ sort<T>: (items: Vec<T>) {
   }
 }
 
-foo: () -> i32 = {
-  42
-}
-
 main : () = {
+  bar = 42;
+
+  foo: () -> i32 = {
+    bar
+  }
+
   io::cout << "hello " << foo().to_string() << "\n";
 }
 ```
