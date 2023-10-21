@@ -39,12 +39,12 @@ type Info = {
 type Things = enum[
   Car,
   Truck,
-  Bike{info:Info, quantity: u32},
-  Color(Color),  
+  Bike: {info: Info, quantity: u32},
+  Paint: Color,  
 ];
 
 type Option<T> = enum[
-  Some(T),
+  Some: T,
   None,
 ];
 
