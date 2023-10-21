@@ -14,11 +14,9 @@
 | Examples |                                                   |
 | -------- | ------------------------------------------------- |
 | variable | foo: i32 = 42;                                    |
-| function | foo: (bar: i32) -> i32 = {...}                    |
+| function | foo: (bar: i32) -> i32 = { bar * 2 }              |
 
-## functions
-
-[function_name] : [function_type] = [implementation]
+## sample
 
 ```io
 // Union
