@@ -7,7 +7,7 @@
 - [ ] scalar types: `i`, `u`, `f`, `bool`, 
 - [x] binary operators: `*`, `+`, `-`, `/`
 - [ ] generic: `Vec<T>`, `Map<K,V>`, `Set<T>`
-- [ ] complex: `union`, `enum`
+- [ ] complex: `union`, `enum`, `struct`
 
 ## declaration
 
