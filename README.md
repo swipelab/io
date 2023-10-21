@@ -62,9 +62,9 @@ groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
 }
 
 sort<T>: (items: Vec<T>) {
-  for i=0; i < items.len(); i+=1 {
+  for i = 0; i < items.len(); i+=1 {
     max = i;
-    for j=i+1; j < items.len(); j+=1 {
+    for j = i+1; j < items.len(); j+=1 {
       if(items[max] < items[j]) {
         max = j;
       }
