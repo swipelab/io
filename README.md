@@ -11,12 +11,8 @@
 
 ## declaration
 
-name : type = value
-
 | Examples |                                                   |
 | -------- | ------------------------------------------------- |
-| struct   | foo: {a: i32; b:i32}                              |
-| enum     | set: enum[A; B: {b1: bool; b2:u8 }; C: () -> i32] |
 | variable | foo: i32 = 42;                                    |
 | function | foo: (bar: i32) -> i32 = {...}                    |
 
@@ -31,8 +27,8 @@ name : type = value
 // ---Alpha|-----Red|---Green|----Blue|
 type Color = union[
   value: u32,
-  :struct{ a: u8; r: u8; g: u8; b: u8; },
-  :struct{_:u8, rgb: u24},
+  :struct{ a: u8, r: u8, g: u8, b: u8, },
+  :struct{  : u8, rgb: u24, },
 ];
 
 // Alias
