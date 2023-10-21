@@ -21,11 +21,11 @@
 ```io
 // Union
 // ---Alpha|-----Red|---Green|----Blue|
-type Color = union[
+type Color = union{
   value: u32,
   :struct{ a: u8, r: u8, g: u8, b: u8, },
   :struct{  : u8, rgb: u24, },
-];
+};
 
 // Alias
 type VecI32 = Vec<i32>;
@@ -36,17 +36,17 @@ type Info = {
 };
 
 // Experimental ADT 
-type Things = enum[
+type Things = enum{
   Car,
   Truck,
   Bike: struct{info: Info, quantity: u32},
   Paint: Color,  
-];
+};
 
-type Option<T> = enum[
+type Option<T> = enum{
   Some: T,
   None,
-];
+};
 
 groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
   items.fold(Map(), (collector, item) {
