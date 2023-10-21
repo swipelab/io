@@ -49,7 +49,7 @@ type Option<T> = enum[
 ];
 
 groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
-  items.fold(Map(), (collector, item) = {
+  items.fold(Map(), (collector, item) {
     item_key = key(item);
     match collector.get(item_key) {
       Some(vec) => vec,              
