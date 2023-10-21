@@ -11,10 +11,10 @@
 
 ## declaration
 
-| Examples |                                                   |
-| -------- | ------------------------------------------------- |
-| variable | foo: i32 = 42;                                    |
-| function | foo: (bar: i32) -> i32 = { bar * 2 }              |
+| Examples |                                      |
+| -------- | ------------------------------------ |
+| variable | foo: i32 = 42;                       |
+| function | foo: (bar: i32) -> i32 = { bar * 2 } |
 
 ## sample
 
@@ -36,12 +36,11 @@ type Info = {
 };
 
 // Experimental ADT 
-// using <u8> for descriminator
-type Things = enum<u8>[
-  Car                            = 1,
-  Truck                          = 2,
-  Bike{info:Info, quantity: u32} = 3,
-  Color(Color)                   = 4,  
+type Things = enum[
+  Car,
+  Truck,
+  Bike{info:Info, quantity: u32},
+  Color(Color),  
 ];
 
 type Option<T> = enum[
