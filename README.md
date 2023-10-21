@@ -4,10 +4,10 @@
 - [ ] scope: `{...}`
 - [ ] equality: `!=` , `==`
 - [ ] logical operators: `&&`, `||`, `^^`
-- [ ] scalar types: `i`, `u`, `f`, `bool`
+- [ ] scalar types: `i`, `u`, `f`, `bool`, 
 - [x] binary operators: `*`, `+`, `-`, `/`
-- [ ] generic: `Vec<T>`, `Map<K,V>`, `Set<T>`, ...
-- [ ] complex: struct,
+- [ ] generic: `Vec<T>`, `Map<K,V>`, `Set<T>`
+- [ ] complex: `union`, `enum`
 
 ## declaration
 
