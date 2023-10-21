@@ -28,7 +28,7 @@ type Color = union[
 ];
 
 // Alias
-type WheelSizes = Vec<i32>;
+type VecI32 = Vec<i32>;
 
 // Struct
 type Info = struct{  
@@ -38,10 +38,10 @@ type Info = struct{
 // Experimental ADT 
 // using <u8> for descriminator
 type Things = enum<u8>[ 
-  Car           = 1,
-  Truck         = 2,
-  Bike          = 3,
-  Color: Color  = 4,  
+  Car                            = 1,
+  Truck                          = 2,
+  Bike{info:Info, quantity: u32} = 3,
+  Color(Color)                   = 4,  
 ];
 
 type Option<T> = enum[
