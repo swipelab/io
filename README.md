@@ -23,21 +23,21 @@
 // ---Alpha|-----Red|---Green|----Blue|
 type Color = union[
   value: u32,
-  :struct{ a: u8, r: u8, g: u8, b: u8, },
-  :struct{  : u8, rgb: u24, },
+  :{ a: u8, r: u8, g: u8, b: u8, },
+  :{  : u8, rgb: u24, },
 ];
 
 // Alias
 type VecI32 = Vec<i32>;
 
 // Struct
-type Info = struct{  
+type Info = {  
   description: Utf8;
-}
+};
 
 // Experimental ADT 
 // using <u8> for descriminator
-type Things = enum<u8>[ 
+type Things = enum<u8>[
   Car                            = 1,
   Truck                          = 2,
   Bike{info:Info, quantity: u32} = 3,
@@ -47,7 +47,7 @@ type Things = enum<u8>[
 type Option<T> = enum[
   Some(T),
   None,
-]
+];
 
 groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
   items.fold(Map(), (collector, item) = {
@@ -62,11 +62,13 @@ groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
 sort<T>: (items: Vec<T>) {
   for i = 0; i < items.len(); i+=1 {
     max = i;
+    // find max
     for j = i+1; j < items.len(); j+=1 {
       if(items[max] < items[j]) {
         max = j;
       }
     }
+    // swap
     items[i], items[max] = items[max], items[i]
   }
 }
