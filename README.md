@@ -25,8 +25,11 @@ Summary
 type Color = union{
   value: u32;
   :struct{ a: u8, r: u8, g: u8, b: u8, };
-  :struct{  : u8, rgb: u24, };
+  :struct{ a: u8, rgb: u24, };
 };
+// 1. color = Color(value = 0xFFFFFFFF)
+// 2. color = Color(a=255, r=255, g=255, b=255)
+// 3. color = Color(a=0xFF, rgb= 0xFFFFFF) // first byte is zero (alpha)
 
 // Alias
 type VecI32 = Vec<i32>;
@@ -52,7 +55,8 @@ type FancyType = struct{
 
 /*
 f = FancyType(
-  thing = Things.Paint(value: 0xFF0000FF),
+  // notice the ctor for Things.Paint is Color.new()
+  thing = Things.Paint(value= 0xFF0000FF),
   info = (a = 42, b = 0),
 );
 */
