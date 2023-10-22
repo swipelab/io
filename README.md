@@ -22,6 +22,7 @@ Summary
 ```io
 // Union
 // ---Alpha|-----Red|---Green|----Blue|
+// uninitialized fields will be marked with [core.Default]
 type Color = union{
   value: u32;
   :struct{ a: u8; r: u8; g: u8; b: u8; };
