@@ -24,8 +24,8 @@ Summary
 // ---Alpha|-----Red|---Green|----Blue|
 type Color = union{
   value: u32;
-  :struct{ a: u8, r: u8, g: u8, b: u8, };
-  :struct{ a: u8, rgb: u24, };
+  :struct{ a: u8; r: u8; g: u8; b: u8; };
+  :struct{ a: u8; rgb: u24; };
 };
 // 1. color = Color(value= 0xFFFFFFFF)
 // 2. color = Color(a=255, r=255, g=255, b=255)
@@ -55,10 +55,10 @@ type FancyType = struct{
 
 /*
 f = FancyType(
-  // notice the ctor for Things.Paint is Color.new()
-  thing = Things.Paint(value= 0xFF0000FF),
+  thing = Things.Paint(Color(value= 0xFF0000FF)),
   info = (a = 42, b = 0),
 );
+bike = Things.Bike(info= Info(description= "Bike"), quantity= 42),
 */
 
 type Option<T> = enum{
