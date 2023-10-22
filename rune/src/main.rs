@@ -2,7 +2,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Write;
 use std::ops::{Add, Div, Mul, Sub};
-use std::sync::{Mutex};
+use std::sync::{LockResult, Mutex, RwLock};
 use std::process::exit;
 use std::rc::Rc;
 
@@ -53,6 +53,8 @@ struct ProgramParser {
 
 impl ProgramParser {
   fn parse(&self) -> Expr {
+
+
     let mut body = vec![];
     while self.more() {
       body.push(self.parse_statement())
