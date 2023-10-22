@@ -27,7 +27,7 @@ type Color = union{
   :struct{ a: u8, r: u8, g: u8, b: u8, };
   :struct{ a: u8, rgb: u24, };
 };
-// 1. color = Color(value = 0xFFFFFFFF)
+// 1. color = Color(value= 0xFFFFFFFF)
 // 2. color = Color(a=255, r=255, g=255, b=255)
 // 3. color = Color(a=0xFF, rgb= 0xFFFFFF) // first byte is zero (alpha)
 
