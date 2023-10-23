@@ -2,20 +2,22 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Write;
 use std::ops::{Add, Div, Mul, Sub};
-use std::sync::{LockResult, Mutex, RwLock};
+use std::sync::{Mutex};
 use std::process::exit;
-use std::rc::Rc;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TokenKind {
   Let,
-  Nil,
   Number,
   Identifier,
   BinaryOperator,
   Equals,
   OpenParenthesis,
   CloseParenthesis,
+  Type,
+  Struct,
+  Union,
+  Enum,
   EOF,
 }
 
@@ -27,18 +29,19 @@ struct Token {
 
 #[derive(Debug, Clone)]
 enum Expr {
+  Never,
   Program(Vec<Expr>),
-  Nil,
   Number(String),
   BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
   Identifier(String),
 }
 
-#[derive(Debug, Copy, Clone)]
-enum Result {
-  Nil,
+#[derive(Debug, Clone)]
+enum RuntimeValue {
+  Never,
   Float(f64),
   Int(i64),
+  Error(String),
 }
 
 fn parse(tokens: Vec<Token>) -> Expr {
@@ -53,8 +56,6 @@ struct ProgramParser {
 
 impl ProgramParser {
   fn parse(&self) -> Expr {
-
-
     let mut body = vec![];
     while self.more() {
       body.push(self.parse_statement())
@@ -97,10 +98,6 @@ impl ProgramParser {
   fn parse_primary_expression(&self) -> Expr {
     let kind = self.at().kind;
     match kind {
-      TokenKind::Nil => {
-        self.eat();
-        Expr::Nil {}
-      }
       TokenKind::Number => {
         Expr::Number(
           self.eat().value.clone()
@@ -115,7 +112,7 @@ impl ProgramParser {
         self.expect(TokenKind::CloseParenthesis);
         expr
       }
-      _ => Expr::Nil
+      _ => Expr::Never
     }
   }
 
@@ -171,58 +168,90 @@ fn eval_number_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
   }
 }
 
-fn eval_program(body: Vec<Expr>, ctx: Rc<Context>) -> Result {
-  let mut result = Result::Nil;
+fn eval_program(body: Vec<Expr>, ctx: &mut Context) -> RuntimeValue {
+  let mut result = RuntimeValue::Never;
   for expr in body {
-    result = eval(expr, ctx.clone());
+    result = eval(expr, ctx);
   }
   return result;
 }
 
-fn eval_number(value: String) -> Result {
+fn eval_number(value: String) -> RuntimeValue {
   if value.chars().any(|e| e == '.') {
-    Result::Float(value.parse::<f64>().unwrap())
+    RuntimeValue::Float(value.parse::<f64>().unwrap())
   } else {
-    Result::Int(value.parse::<i64>().unwrap())
+    RuntimeValue::Int(value.parse::<i64>().unwrap())
   }
 }
 
-fn eval_binary_expression(left: Expr, right: Expr, op: String, ctx: Rc<Context>) -> Result {
-  let lhs = eval(left, ctx.clone());
-  let rhs = eval(right, ctx.clone());
+fn eval_binary_expression(left: Expr, right: Expr, op: String, ctx: &mut Context) -> RuntimeValue {
+  let lhs = eval(left, ctx);
+  let rhs = eval(right, ctx);
 
   match lhs {
-    Result::Nil => {}
-    Result::Float(l) => {
+    RuntimeValue::Error(e) => RuntimeValue::Error(e),
+    RuntimeValue::Float(l) => {
       match rhs {
-        Result::Nil => {}
-        Result::Float(r) => return Result::Float(eval_number_binary_operation(l, r, op.as_str())),
-        Result::Int(r) => return Result::Float(eval_number_binary_operation(l, r as f64, op.as_str())),
+        RuntimeValue::Float(r) => return RuntimeValue::Float(eval_number_binary_operation(l, r, op.as_str())),
+        RuntimeValue::Int(r) => return RuntimeValue::Float(eval_number_binary_operation(l, r as f64, op.as_str())),
+        RuntimeValue::Error(e) => RuntimeValue::Error(e),
+        _ => RuntimeValue::Never,
       }
     }
-    Result::Int(l) => {
+    RuntimeValue::Int(l) => {
       match rhs {
-        Result::Nil => {}
-        Result::Float(r) => return Result::Float(eval_number_binary_operation(l as f64, r, op.as_str())),
-        Result::Int(r) => return Result::Int(eval_number_binary_operation(l, r, op.as_str())),
+        RuntimeValue::Float(r) => return RuntimeValue::Float(eval_number_binary_operation(l as f64, r, op.as_str())),
+        RuntimeValue::Int(r) => return RuntimeValue::Int(eval_number_binary_operation(l, r, op.as_str())),
+        RuntimeValue::Error(e) => RuntimeValue::Error(e),
+        _ => RuntimeValue::Never,
       }
+    }
+    _ => RuntimeValue::Never,
+  }
+}
+
+#[derive(Debug, Clone)]
+struct Context {
+  parent: Option<Box<Context>>,
+  variables: HashMap<String, RuntimeValue>,
+}
+
+impl Context {
+  pub fn lookup_variable(&mut self, name: &str) -> Option<RuntimeValue> {
+    //TODO: remove self.clone()
+    if let Some(ctx) = self.clone().resolve_variable_context(name) {
+      return match ctx.variables.get(name) {
+        Some(var) => Some(var.clone()),
+        None => None,
+      };
+    }
+    None
+  }
+  pub fn declare_variable(&mut self, name: &str, value: RuntimeValue) {
+    if let Some(_) = self.variables.get(name) {
+      panic!("{name:?} already defined");
+    }
+    self.variables.insert(name.to_owned(), value);
+  }
+
+  pub fn resolve_variable_context(self, variable_name: &str) -> Option<Box<Context>> {
+    if self.variables.contains_key(variable_name) {
+      return Some(Box::new(self));
+    }
+    match self.parent {
+      Some(e) => e.resolve_variable_context(variable_name),
+      None => None,
     }
   }
-  Result::Nil
 }
 
-struct Context {
-  parent: Option<Rc<Context>>,
-  vars: HashMap<String, Result>,
-}
-
-fn eval(node: Expr, ctx: Rc<Context>) -> Result {
+fn eval(node: Expr, ctx: &mut Context) -> RuntimeValue {
   match node {
     Expr::Program(e) => eval_program(e, ctx),
-    Expr::Nil => Result::Nil,
+    Expr::Never => RuntimeValue::Never,
     Expr::Number(e) => eval_number(e),
     Expr::BinaryExpr { left, right, op } => eval_binary_expression(*left, *right, op, ctx),
-    Expr::Identifier(e) => *ctx.vars.get(e.as_str()).unwrap(),
+    Expr::Identifier(e) => (ctx.lookup_variable(e.as_str())).unwrap_or(RuntimeValue::Error(format!("{e} undefined"))),
   }
 }
 
@@ -233,7 +262,10 @@ fn tokenize(source: String) -> Vec<Token> {
 
   let keywords = HashMap::from([
     ("let".to_owned(), TokenKind::Let),
-    ("nil".to_owned(), TokenKind::Nil)
+    ("type".to_owned(), TokenKind::Type),
+    ("enum".to_owned(), TokenKind::Enum),
+    ("union".to_owned(), TokenKind::Union),
+    ("struct".to_owned(), TokenKind::Struct),
   ]);
 
   fn is_skippable(e: &str) -> bool {
@@ -325,26 +357,28 @@ fn tokenize(source: String) -> Vec<Token> {
 fn main() {
   println!();
   println!("io.repl v.0.0.1");
+
+  let mut ctx = Context {
+    parent: None,
+    variables: HashMap::new(),
+  };
+  ctx.declare_variable("pi", RuntimeValue::Float(std::f64::consts::PI));
+
   loop {
     print!("$ ");
     std::io::stdout().flush().unwrap();
 
     let mut line = String::new();
     std::io::stdin().read_line(&mut line).unwrap();
+
+
     match line.as_str() {
       "exit" => { exit(0); }
       e => {
         let source = e.to_owned();
         let tokens = tokenize(source);
         let program = parse(tokens);
-        let result = eval(
-          program,
-          Rc::new(Context {
-            parent: None,
-            vars: HashMap::from([
-              ("pi".to_owned(), Result::Float(std::f64::consts::PI))
-            ]),
-          }));
+        let result = eval(program, &mut ctx);
         println!("> {:?}", result);
       }
     }
