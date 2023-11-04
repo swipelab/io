@@ -29,10 +29,19 @@ struct Token {
   value: String,
 }
 
+enum BinaryOp {
+  Add,
+  Sub,
+  Mul,
+  Div,
+  Mod,
+}
+
 #[derive(Debug, Clone)]
 enum Expr {
   Never,
   Program(Vec<Expr>),
+  //TODO: turn into RuntimeValue
   Number(String),
   BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
   Identifier(String),
@@ -272,7 +281,7 @@ fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::Program(e) => eval_program(e, ctx.clone()),
     Expr::Never => RuntimeValue::Never,
     Expr::Number(e) => eval_number(e),
-    Expr::BinaryExpr { left, right, op } => eval_binary_expression(*left, *right, op, ctx),
+    Expr::BinaryExpr { left, right, op } => eval_binary_expression(*left, *right, op, ctx.clone()),
     Expr::Identifier(e) => eval_ident(e.as_str(), ctx.clone()),
   }
 }
@@ -349,7 +358,7 @@ fn tokenize(source: String) -> Vec<Token> {
     match at() {
       "(" => push(TokenKind::OpenParenthesis, shift()),
       ")" => push(TokenKind::CloseParenthesis, shift()),
-      "-" | "+" | "*" | "/" | "&" | "|" | "^" => push(TokenKind::BinaryOperator, shift()),
+      "-" | "+" | "*" | "/" => push(TokenKind::BinaryOperator, shift()),
       "=" => push(TokenKind::Equals, shift()),
       e if is_int(e) => {
         let mut value = "".to_owned();
