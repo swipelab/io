@@ -28,10 +28,10 @@ pub struct Token {
 }
 
 pub static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
-  "let"=> TokenKind::Let,
-  "const"=> TokenKind::Const,
-  "type"=> TokenKind::Type,
-  "enum"=> TokenKind::Enum,
+  "let" => TokenKind::Let,
+  "const" => TokenKind::Const,
+  "type" => TokenKind::Type,
+  "enum" => TokenKind::Enum,
   "union" => TokenKind::Union,
   "struct" => TokenKind::Struct,
 };
