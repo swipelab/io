@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::sync::Mutex;
 use crate::io::ast::{Expr, Symbol};
 use crate::io::lexer::{Token, TokenKind};
@@ -22,7 +23,16 @@ impl ProgramParser {
         continue;
       }
 
-      body.push(self.parse_statement())
+      let statement = self.parse_statement();
+
+      match statement {
+        Expr::Error(_) | Expr::Never => {
+          return statement;
+        }
+        _ => {}
+      }
+
+      body.push(statement)
     }
     Expr::Program(body)
   }
@@ -84,8 +94,8 @@ impl ProgramParser {
   }
 
   fn parse_primary_expression(&self) -> Expr {
-    let kind = self.at().kind;
-    match kind {
+    let current = self.at();
+    match current.kind {
       TokenKind::Number => {
         Expr::Number(
           self.eat().value.clone()
@@ -100,7 +110,7 @@ impl ProgramParser {
         self.expect(TokenKind::CloseParenthesis);
         expr
       }
-      _ => Expr::Never
+      _ => Expr::Error(format!("Unknown {:?}", current))
     }
   }
 
@@ -108,7 +118,7 @@ impl ProgramParser {
     let mut left = self.parse_primary_expression();
     loop {
       match self.at().value.as_str() {
-        "*" | "/" => {
+        "*" | "/" | "%" => {
           let op = self.eat().value.clone();
           let right = self.parse_primary_expression();
           let copy = left.clone();

@@ -17,6 +17,7 @@ pub enum Expr {
   Number(String),
 
   //TODO: Halt / Panic / ....
+  Error(String),
   Never,
 }
 

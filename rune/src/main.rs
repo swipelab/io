@@ -1,9 +1,9 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Write;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::sync::{Arc, Mutex};
-use std::process::exit;
+use std::process::{exit};
 use rune::io::ast::{Expr, Symbol};
 use rune::io::lexer::{tokenize};
 use rune::io::parser::parse;
@@ -20,13 +20,14 @@ enum RuntimeValue {
 }
 
 fn eval_number_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
-  where T: Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T>
+  where T: Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T> + Rem<Output=T>
 {
   match op {
     "+" => lhs + rhs,
     "-" => lhs - rhs,
     "*" => lhs * rhs,
     "/" => lhs / rhs,
+    "%" => lhs % rhs,
     _ => panic!()
   }
 }
@@ -141,6 +142,7 @@ fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
   match node {
     Expr::Program(e) => eval_program(e, ctx.clone()),
     Expr::Never => RuntimeValue::Never,
+    Expr::Error(e) => RuntimeValue::Error(e),
     Expr::Number(e) => eval_number(e),
     Expr::BinaryExpr { left, right, op } => eval_binary_expression(*left, *right, op, ctx.clone()),
     Expr::Identifier(e) => eval_ident(e, ctx.clone()),
