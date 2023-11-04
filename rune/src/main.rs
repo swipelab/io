@@ -2,8 +2,10 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Write;
 use std::ops::{Add, Div, Mul, Sub};
-use std::sync::{Mutex};
+use std::sync::{Arc, Mutex};
 use std::process::exit;
+
+type RefContext = Arc<Mutex<Context>>;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TokenKind {
@@ -39,6 +41,7 @@ enum Expr {
 #[derive(Debug, Clone)]
 enum RuntimeValue {
   Never,
+  Bool(bool),
   Float(f64),
   Int(i64),
   Error(String),
@@ -168,10 +171,10 @@ fn eval_number_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
   }
 }
 
-fn eval_program(body: Vec<Expr>, ctx: &mut Context) -> RuntimeValue {
+fn eval_program(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
   let mut result = RuntimeValue::Never;
   for expr in body {
-    result = eval(expr, ctx);
+    result = eval(expr, ctx.clone());
   }
   return result;
 }
@@ -184,9 +187,14 @@ fn eval_number(value: String) -> RuntimeValue {
   }
 }
 
-fn eval_binary_expression(left: Expr, right: Expr, op: String, ctx: &mut Context) -> RuntimeValue {
-  let lhs = eval(left, ctx);
-  let rhs = eval(right, ctx);
+fn eval_ident(name: &str, ctx: RefContext) -> RuntimeValue {
+  let mut context = ctx.lock().unwrap();
+  context.get_variable(name).unwrap_or(RuntimeValue::Error(format!("{name} undefined")))
+}
+
+fn eval_binary_expression(left: Expr, right: Expr, op: String, ctx: RefContext) -> RuntimeValue {
+  let lhs = eval(left, ctx.clone());
+  let rhs = eval(right, ctx.clone());
 
   match lhs {
     RuntimeValue::Error(e) => RuntimeValue::Error(e),
@@ -210,48 +218,62 @@ fn eval_binary_expression(left: Expr, right: Expr, op: String, ctx: &mut Context
   }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Context {
-  parent: Option<Box<Context>>,
+  parent: Option<RefContext>,
   variables: HashMap<String, RuntimeValue>,
 }
 
 impl Context {
-  pub fn lookup_variable(&mut self, name: &str) -> Option<RuntimeValue> {
-    //TODO: remove self.clone()
-    if let Some(ctx) = self.clone().resolve_variable_context(name) {
-      return match ctx.variables.get(name) {
-        Some(var) => Some(var.clone()),
-        None => None,
-      };
+  pub fn get_variable(&mut self, name: &str) -> Option<RuntimeValue> {
+    match self.variables.get(name) {
+      None => {}
+      Some(v) => return Some(v.clone()),
     }
-    None
+
+    match self.parent.clone() {
+      None => None,
+      Some(e) => {
+        return e.lock().unwrap().get_variable(name);
+      }
+    }
   }
-  pub fn declare_variable(&mut self, name: &str, value: RuntimeValue) {
+  pub fn let_variable(&mut self, name: &str, value: RuntimeValue) {
     if let Some(_) = self.variables.get(name) {
       panic!("{name:?} already defined");
     }
     self.variables.insert(name.to_owned(), value);
   }
 
-  pub fn resolve_variable_context(self, variable_name: &str) -> Option<Box<Context>> {
-    if self.variables.contains_key(variable_name) {
-      return Some(Box::new(self));
+  pub fn get_variable_context(self, variable_name: &str) -> Option<Arc<Context>> {
+    match self.variables.get(variable_name) {
+      None => {}
+      Some(_) => {
+        return Some(Arc::new(self));
+      }
     }
-    match self.parent {
-      Some(e) => e.resolve_variable_context(variable_name),
-      None => None,
+
+    let mut parent = self.parent;
+    loop {
+      match parent {
+        None => break,
+        Some(e) => {
+          parent = Some(e);
+        }
+      }
     }
+
+    None
   }
 }
 
-fn eval(node: Expr, ctx: &mut Context) -> RuntimeValue {
+fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
   match node {
-    Expr::Program(e) => eval_program(e, ctx),
+    Expr::Program(e) => eval_program(e, ctx.clone()),
     Expr::Never => RuntimeValue::Never,
     Expr::Number(e) => eval_number(e),
     Expr::BinaryExpr { left, right, op } => eval_binary_expression(*left, *right, op, ctx),
-    Expr::Identifier(e) => (ctx.lookup_variable(e.as_str())).unwrap_or(RuntimeValue::Error(format!("{e} undefined"))),
+    Expr::Identifier(e) => eval_ident(e.as_str(), ctx.clone()),
   }
 }
 
@@ -358,11 +380,14 @@ fn main() {
   println!();
   println!("io.repl v.0.0.1");
 
-  let mut ctx = Context {
+  let mut context = Context {
     parent: None,
     variables: HashMap::new(),
   };
-  ctx.declare_variable("pi", RuntimeValue::Float(std::f64::consts::PI));
+  context.let_variable("pi", RuntimeValue::Float(std::f64::consts::PI));
+  context.let_variable("true", RuntimeValue::Bool(true));
+  context.let_variable("false", RuntimeValue::Bool(false));
+  let ctx = Arc::new(Mutex::new(context));
 
   loop {
     print!("$ ");
@@ -378,7 +403,7 @@ fn main() {
         let source = e.to_owned();
         let tokens = tokenize(source);
         let program = parse(tokens);
-        let result = eval(program, &mut ctx);
+        let result = eval(program, ctx.clone());
         println!("> {:?}", result);
       }
     }

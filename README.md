@@ -101,7 +101,7 @@ quickSort<T: Ord>: (mut items: Vec<T>) = {
         items[i], items[j] = items[j], items[i];
       }
     }
-    i + 1;
+    i + 1
   }
 
   sort: (mut items: Vec<T>, low, high: i32) = {
