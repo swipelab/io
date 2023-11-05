@@ -1,5 +1,5 @@
 use std::sync::Mutex;
-use crate::io::ast::{Expr, Symbol};
+use crate::io::ast::{Expr, Property, Symbol};
 use crate::io::lexer::{Token, TokenKind};
 
 // Precedence
@@ -92,16 +92,47 @@ impl ProgramParser {
   }
 
   fn parse_assign_expr(&self) -> Expr {
-    let mut lhs = self.parse_additive_expr();
+    let mut target = self.parse_object_expr();
     if self.at().kind == TokenKind::Equals {
       self.eat();
       let rhs = self.parse_assign_expr();
-      lhs = Expr::AssignExpr {
-        target: Box::new(lhs),
+      target = Expr::AssignExpr {
+        target: Box::new(target),
         value: Box::new(rhs),
       };
     }
-    lhs
+    target
+  }
+
+  fn parse_object_expr(&self) -> Expr {
+    // { key = expr,  }
+
+    if self.at().kind != TokenKind::OpenBrace {
+      return self.parse_additive_expr();
+    }
+    self.eat();
+    let mut props = Vec::new();
+    while self.at().kind != TokenKind::CloseBrace {
+      let identifier = Symbol { name: self.expect(TokenKind::Identifier).value };
+
+      if self.at().kind == TokenKind::Comma {
+        self.eat();
+        props.push(Property { identifier, value: None });
+        continue;
+      } else if self.at().kind == TokenKind::CloseBrace {
+        props.push(Property { identifier, value: None });
+        continue;
+      }
+      self.expect(TokenKind::Colon);
+      let value = self.parse_expr();
+      props.push(Property { identifier, value: Some(value) })
+    }
+
+    self.expect(TokenKind::CloseBrace);
+
+    Expr::Object {
+      props: props,
+    }
   }
 
   fn parse_statement(&self) -> Expr {

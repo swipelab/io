@@ -2,7 +2,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::sync::{Arc, Mutex};
-use crate::io::ast::{Expr, Symbol};
+use crate::io::ast::{Expr, Property, Symbol};
 
 type RefContext = Arc<Mutex<Context>>;
 
@@ -12,6 +12,8 @@ pub enum RuntimeValue {
   Bool(bool),
   Float(f64),
   Int(i64),
+  Object(HashMap<String, RuntimeValue>),
+  Key(String),
   Error(String),
 }
 
@@ -142,6 +144,18 @@ impl Context {
   }
 }
 
+fn eval_object(props: Vec<Property>, ctx: RefContext) -> RuntimeValue {
+  let mut map = HashMap::new();
+  for prop in props {
+    let value = match prop.value {
+      None => RuntimeValue::Key(prop.identifier.name.clone()),
+      Some(expr) => eval(expr, ctx.clone()),
+    };
+    map.insert(prop.identifier.name.clone(), value);
+  }
+  RuntimeValue::Object(map)
+}
+
 pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
   match node {
     Expr::Program(e) => eval_program(e, ctx.clone()),
@@ -152,6 +166,7 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::Identifier(e) => eval_identifier(e, ctx.clone()),
     Expr::VarDecl { value, identifier, .. } => eval_var_decl(identifier, *value, ctx.clone()),
     Expr::AssignExpr { target: lhs, value: rhs } => eval_assign_expr(*lhs, *rhs, ctx.clone()),
+    Expr::Object { props } => eval_object(props, ctx.clone()),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
 }

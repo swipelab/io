@@ -49,7 +49,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
 
   fn is_skippable(e: &str) -> bool {
     match e {
-      " " | "\n" | "\t" => true,
+      " " | "\n" | "\t" | "\r" => true,
       _ => false,
     }
   }

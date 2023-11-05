@@ -21,9 +21,14 @@ pub enum Expr {
   Identifier(Symbol),
   //TODO: turn into RuntimeValue
   Number(String),
-  Property,
-  Object,
+  Object { props: Vec<Property> },
+  Property(Box<Property>),
+}
 
+#[derive(Debug, Clone)]
+pub struct Property {
+  pub identifier: Symbol,
+  pub value: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
