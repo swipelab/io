@@ -1,6 +1,5 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::sync::{Arc, Mutex};
 use crate::io::ast::{Expr, Property, Symbol};
