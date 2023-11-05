@@ -20,6 +20,7 @@ pub enum Expr {
   // literals
   Identifier(Symbol),
   //TODO: turn into RuntimeValue
+  String(String),
   Number(String),
   Object { props: Vec<Property> },
   Property(Box<Property>),

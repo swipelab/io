@@ -130,9 +130,7 @@ impl ProgramParser {
 
     self.expect(TokenKind::CloseBrace);
 
-    Expr::Object {
-      props: props,
-    }
+    Expr::Object { props }
   }
 
   fn parse_statement(&self) -> Expr {

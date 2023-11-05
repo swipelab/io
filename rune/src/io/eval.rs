@@ -13,7 +13,7 @@ pub enum RuntimeValue {
   Float(f64),
   Int(i64),
   Object(HashMap<String, RuntimeValue>),
-  Key(String),
+  //Key(String),
   Error(String),
 }
 
@@ -148,7 +148,7 @@ fn eval_object(props: Vec<Property>, ctx: RefContext) -> RuntimeValue {
   let mut map = HashMap::new();
   for prop in props {
     let value = match prop.value {
-      None => RuntimeValue::Key(prop.identifier.name.clone()),
+      None => ctx.lock().unwrap().get_variable(prop.identifier.name.as_str()).unwrap(),
       Some(expr) => eval(expr, ctx.clone()),
     };
     map.insert(prop.identifier.name.clone(), value);
