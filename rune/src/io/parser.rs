@@ -1,7 +1,11 @@
-use std::fmt::format;
 use std::sync::Mutex;
 use crate::io::ast::{Expr, Symbol};
 use crate::io::lexer::{Token, TokenKind};
+
+// Precedence
+// additive_expression
+// multiplicative_expression
+// primary_expression
 
 struct ProgramParser {
   tokens: Vec<Token>,
@@ -11,6 +15,7 @@ struct ProgramParser {
 pub fn parse(tokens: Vec<Token>) -> Expr {
   ProgramParser { tokens, index: Mutex::new(0) }.parse()
 }
+
 
 impl ProgramParser {
   fn parse(&self) -> Expr {
@@ -72,7 +77,7 @@ impl ProgramParser {
     // }
 
     self.expect(TokenKind::Equals);
-    let expr = self.parse_expression();
+    let expr = self.parse_expr();
     self.expect(TokenKind::Semicolon);
 
     return Expr::VarDecl {
@@ -82,14 +87,27 @@ impl ProgramParser {
     };
   }
 
-  fn parse_expression(&self) -> Expr {
-    self.parse_additive_expression()
+  fn parse_expr(&self) -> Expr {
+    self.parse_assign_expr()
+  }
+
+  fn parse_assign_expr(&self) -> Expr {
+    let mut lhs = self.parse_additive_expr();
+    if self.at().kind == TokenKind::Equals {
+      self.eat();
+      let rhs = self.parse_assign_expr();
+      lhs = Expr::AssignExpr {
+        target: Box::new(lhs),
+        value: Box::new(rhs),
+      };
+    }
+    lhs
   }
 
   fn parse_statement(&self) -> Expr {
     match self.at().kind {
       TokenKind::Let | TokenKind::Const => self.parse_var_declaration(),
-      _ => self.parse_expression(),
+      _ => self.parse_expr(),
     }
   }
 
@@ -106,11 +124,11 @@ impl ProgramParser {
       }
       TokenKind::OpenParenthesis => {
         self.eat();
-        let expr = self.parse_expression();
+        let expr = self.parse_expr();
         self.expect(TokenKind::CloseParenthesis);
         expr
       }
-      _ => Expr::Error(format!("Unknown {:?}", current))
+      _ => Expr::Error(format!("unknown {:?}", current))
     }
   }
 
@@ -134,7 +152,7 @@ impl ProgramParser {
     return left;
   }
 
-  fn parse_additive_expression(&self) -> Expr {
+  fn parse_additive_expr(&self) -> Expr {
     let mut left = self.parse_multiplicative_expression();
     loop {
       match self.at().value.as_str() {

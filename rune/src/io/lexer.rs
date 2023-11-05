@@ -12,8 +12,13 @@ pub enum TokenKind {
   Equals,
   Semicolon,
   Colon,
+  Comma,
   OpenParenthesis,
   CloseParenthesis,
+  OpenBrace,
+  CloseBrace,
+  OpenBracket,
+  CloseBracket,
   Type,
   Struct,
   Union,
@@ -101,10 +106,15 @@ pub fn tokenize(source: &str) -> Vec<Token> {
     match at() {
       "(" => push(TokenKind::OpenParenthesis, shift()),
       ")" => push(TokenKind::CloseParenthesis, shift()),
-      "-" | "+" | "*" | "/" | "%" => push(TokenKind::BinaryOperator, shift()),
+      "{" => push(TokenKind::OpenBrace, shift()),
+      "}" => push(TokenKind::CloseBrace, shift()),
+      "[" => push(TokenKind::OpenBracket, shift()),
+      "]" => push(TokenKind::CloseBracket, shift()),
       "=" => push(TokenKind::Equals, shift()),
       ":" => push(TokenKind::Colon, shift()),
       ";" => push(TokenKind::Semicolon, shift()),
+      "," => push(TokenKind::Comma, shift()),
+      "-" | "+" | "*" | "/" | "%" => push(TokenKind::BinaryOperator, shift()),
       e if is_int(e) => {
         let mut value = "".to_owned();
         while more() && is_number(at()) {

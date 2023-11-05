@@ -11,14 +11,19 @@ pub enum Expr {
   Program(Vec<Expr>),
   VarDecl { constant: bool, identifier: Symbol, value: Box<Expr> },
   BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
-  Identifier(Symbol),
-
-  //TODO: turn into RuntimeValue
-  Number(String),
+  AssignExpr { target: Box<Expr>, value: Box<Expr> },
 
   //TODO: Halt / Panic / ....
   Error(String),
   Never,
+
+  // literals
+  Identifier(Symbol),
+  //TODO: turn into RuntimeValue
+  Number(String),
+  Property,
+  Object,
+
 }
 
 #[derive(Debug, Clone)]
