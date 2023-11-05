@@ -6,6 +6,7 @@ use rune::io::eval::{eval, Context, RuntimeValue};
 use rune::io::lexer::{tokenize};
 use rune::io::parser::parse;
 
+
 fn main() {
   println!();
   println!("io.repl v.0.0.1");
@@ -17,6 +18,10 @@ fn main() {
   context.let_variable("pi", RuntimeValue::Float(std::f64::consts::PI));
   context.let_variable("true", RuntimeValue::Bool(true));
   context.let_variable("false", RuntimeValue::Bool(false));
+  context.let_variable("print", RuntimeValue::ExternFn(|args, _| {
+    println!("(ext) print > {:?}", args);
+    RuntimeValue::Void
+  }));
   let ctx = Arc::new(Mutex::new(context));
 
   loop {

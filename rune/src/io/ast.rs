@@ -12,6 +12,8 @@ pub enum Expr {
   VarDecl { constant: bool, identifier: Symbol, value: Box<Expr> },
   BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
   AssignExpr { target: Box<Expr>, value: Box<Expr> },
+  MemberExp { object: Box<Expr>, property:  Box<Expr>, computed: bool },
+  CallExpr { caller: Box<Expr>, args: Vec<Expr> },
 
   //TODO: Halt / Panic / ....
   Error(String),

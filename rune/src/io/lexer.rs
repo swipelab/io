@@ -13,6 +13,7 @@ pub enum TokenKind {
   Semicolon,
   Colon,
   Comma,
+  Dot,
   OpenParenthesis,
   CloseParenthesis,
   OpenBrace,
@@ -114,6 +115,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
       ":" => push(TokenKind::Colon, shift()),
       ";" => push(TokenKind::Semicolon, shift()),
       "," => push(TokenKind::Comma, shift()),
+      "." => push(TokenKind::Dot, shift()),
       "-" | "+" | "*" | "/" | "%" => push(TokenKind::BinaryOperator, shift()),
       e if is_int(e) => {
         let mut value = "".to_owned();

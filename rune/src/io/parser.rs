@@ -1,11 +1,16 @@
 use std::sync::Mutex;
 use crate::io::ast::{Expr, Property, Symbol};
+use crate::io::ast::Expr::{CallExpr, MemberExp};
 use crate::io::lexer::{Token, TokenKind};
 
-// Precedence
-// additive_expression
-// multiplicative_expression
-// primary_expression
+// Order Precedence
+// assign
+// object
+// additive
+// multiplicative
+// call
+// member
+// primary
 
 struct ProgramParser {
   tokens: Vec<Token>,
@@ -108,7 +113,7 @@ impl ProgramParser {
     // { key = expr,  }
 
     if self.at().kind != TokenKind::OpenBrace {
-      return self.parse_additive_expr();
+      return self.parse_add_expr();
     }
     self.eat();
     let mut props = Vec::new();
@@ -140,7 +145,7 @@ impl ProgramParser {
     }
   }
 
-  fn parse_primary_expression(&self) -> Expr {
+  fn parse_primary_expr(&self) -> Expr {
     let current = self.at();
     match current.kind {
       TokenKind::Number => {
@@ -161,13 +166,13 @@ impl ProgramParser {
     }
   }
 
-  fn parse_multiplicative_expression(&self) -> Expr {
-    let mut left = self.parse_primary_expression();
+  fn parse_mul_expr(&self) -> Expr {
+    let mut left = self.parse_call_member_expr();
     loop {
       match self.at().value.as_str() {
         "*" | "/" | "%" => {
           let op = self.eat().value.clone();
-          let right = self.parse_primary_expression();
+          let right = self.parse_call_member_expr();
           let copy = left.clone();
           left = Expr::BinaryExpr {
             left: Box::new(copy),
@@ -181,13 +186,76 @@ impl ProgramParser {
     return left;
   }
 
-  fn parse_additive_expr(&self) -> Expr {
-    let mut left = self.parse_multiplicative_expression();
+  fn parse_call_member_expr(&self) -> Expr {
+    let member = self.parse_member_expr();
+    if self.at().kind == TokenKind::OpenParenthesis {
+      return self.parse_call_expr(member);
+    }
+    member
+  }
+
+  fn parse_call_expr(&self, caller: Expr) -> Expr {
+    let mut call_expr = CallExpr {
+      caller: Box::new(caller),
+      args: self.parse_args(),
+    };
+
+    if self.at().kind == TokenKind::OpenParenthesis {
+      call_expr = self.parse_call_expr(call_expr);
+    }
+    return call_expr;
+  }
+
+  fn parse_member_expr(&self) -> Expr {
+    let mut object = self.parse_primary_expr();
+    while self.at().kind == TokenKind::Dot || self.at().kind == TokenKind::OpenBracket {
+      let operator = self.eat();
+      let property: Expr;
+      let computed: bool;
+      if operator.kind == TokenKind::Dot {
+        computed = false;
+        // get identifier
+        property = self.parse_primary_expr();
+      } else {
+        computed = true;
+        property = self.parse_expr();
+        self.expect(TokenKind::CloseBracket);
+      }
+
+      object = MemberExp {
+        computed,
+        object: Box::new(object),
+        property: Box::new(property),
+      }
+    }
+
+    object
+  }
+
+
+  fn parse_args(&self) -> Vec<Expr> {
+    self.expect(TokenKind::OpenParenthesis);
+    let args = if self.at().kind == TokenKind::CloseParenthesis { Vec::new() } else { self.parse_args_list() };
+    self.expect(TokenKind::CloseParenthesis);
+    args
+  }
+
+  fn parse_args_list(&self) -> Vec<Expr> {
+    let mut args = vec!(self.parse_expr());
+    while self.at().kind == TokenKind::Comma {
+      self.eat();
+      args.push(self.parse_expr())
+    }
+    args
+  }
+
+  fn parse_add_expr(&self) -> Expr {
+    let mut left = self.parse_mul_expr();
     loop {
       match self.at().value.as_str() {
         "+" | "-" => {
           let op = self.eat().value.clone();
-          let right = self.parse_multiplicative_expression();
+          let right = self.parse_mul_expr();
           left = Expr::BinaryExpr {
             left: Box::new(left),
             right: Box::new(right),
