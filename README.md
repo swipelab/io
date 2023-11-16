@@ -46,6 +46,7 @@ type Things = enum{
   Truck;
   Bike: struct{info: Info, quantity: u32};
   Paint: Color;
+  Parts: Vec<struct{part: Utf8, color: Color}>;
 };
 
 type FancyType = struct{
@@ -118,6 +119,7 @@ quickSort<T: Ord>: (mut items: Vec<T>) = {
 
 
 main : () = {
+  // assignment
   bar = 42;
 
   foo: () -> i32 = {

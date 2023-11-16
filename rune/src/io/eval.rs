@@ -1,8 +1,9 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::sync::{Arc, Mutex};
-use crate::io::ast::{Expr, Property, Symbol};
+use crate::io::ast::{Expr, Parameter, Property, Symbol};
 
 pub type RefContext = Arc<Mutex<Context>>;
 pub type ExternFn = fn(args: Vec<RuntimeValue>, ctx: RefContext) -> RuntimeValue;
@@ -17,6 +18,7 @@ pub enum RuntimeValue {
   Object(HashMap<String, RuntimeValue>),
   Error(String),
   ExternFn(ExternFn),
+  Fn { identifier: Symbol, params: Vec<Parameter>, body: Vec<Expr>, decl_ctx: RefContext },
 }
 
 
@@ -165,6 +167,26 @@ fn eval_call(caller: Expr, args: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
 
   match f {
     RuntimeValue::ExternFn(delegate) => delegate(a, ctx.clone()),
+    RuntimeValue::Fn { identifier, body, params, decl_ctx } => {
+      let mut context = Context {
+        parent: Some(decl_ctx.clone()),
+        variables: HashMap::new(),
+      };
+
+      for (i, param) in params.iter().enumerate() {
+        match a.get(i) {
+          Some(value) => { context.let_variable(param.name.as_str(), value.to_owned()); }
+          None => { return RuntimeValue::Error("too many args".to_string()); }
+        }
+      }
+
+      let context = Arc::new(Mutex::new(context));
+      let mut result = RuntimeValue::Never;
+      for expr in body {
+        result = eval(expr, context.clone());
+      }
+      result
+    }
     _ => RuntimeValue::Error(format!("{:?} not a function ", caller))
   }
 }
@@ -181,7 +203,19 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::AssignExpr { target: lhs, value: rhs } => eval_assign_expr(*lhs, *rhs, ctx.clone()),
     Expr::Object { props } => eval_object(props, ctx.clone()),
     Expr::CallExpr { caller, args } => eval_call(*caller, args, ctx.clone()),
+    Expr::FnDecl { identifier, params, body } => eval_fn_decl(identifier, params, body, ctx.clone()),
     //Expr::MemberExp {  } => eval_member_exp(),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
+}
+
+fn eval_fn_decl(identifier: Symbol, params: Vec<Parameter>, body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
+  let function = RuntimeValue::Fn {
+    identifier: identifier.clone(),
+    params,
+    body,
+    decl_ctx: ctx.clone(),
+  };
+  ctx.lock().unwrap().let_variable(identifier.name.as_str(), function.clone());
+  return function;
 }

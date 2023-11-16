@@ -1,11 +1,12 @@
 use std::collections::HashMap;
-use std::io::Write;
+use std::fmt::{Debug, Display};
+use std::io::{Write};
 use std::sync::{Arc, Mutex};
 use std::process::{exit};
+use std::rc::Rc;
 use rune::io::eval::{eval, Context, RuntimeValue};
 use rune::io::lexer::{tokenize};
 use rune::io::parser::parse;
-
 
 fn main() {
   println!();
@@ -18,8 +19,12 @@ fn main() {
   context.let_variable("pi", RuntimeValue::Float(std::f64::consts::PI));
   context.let_variable("true", RuntimeValue::Bool(true));
   context.let_variable("false", RuntimeValue::Bool(false));
-  context.let_variable("print", RuntimeValue::ExternFn(|args, _| {
-    println!("(ext) print > {:?}", args);
+  context.let_variable("print", RuntimeValue::ExternFn(|args, ctx| {
+    println!("[extern]::print > {:?}", args);
+    RuntimeValue::Void
+  }));
+  context.let_variable("status", RuntimeValue::ExternFn(|args, ctx| {
+    ctx.lock().unwrap().variables.iter().for_each(|e| println!("{:?}", e));
     RuntimeValue::Void
   }));
   let ctx = Arc::new(Mutex::new(context));
@@ -29,7 +34,7 @@ fn main() {
     std::io::stdout().flush().unwrap();
 
     let mut line = String::new();
-    std::io::stdin().read_line(&mut line).unwrap();
+    std::io::stdin().read_line(&mut line).unwrap();    
 
     match line.as_str() {
       "exit\n" => exit(0),

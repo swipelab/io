@@ -22,6 +22,7 @@ pub enum TokenKind {
   CloseBracket,
   Type,
   Struct,
+  Fn,
   Union,
   Enum,
   EOF,
@@ -40,6 +41,7 @@ pub static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
   "enum" => TokenKind::Enum,
   "union" => TokenKind::Union,
   "struct" => TokenKind::Struct,
+  "fn" => TokenKind::Fn,
 };
 
 

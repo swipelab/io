@@ -1,5 +1,5 @@
 use std::sync::Mutex;
-use crate::io::ast::{Expr, Property, Symbol};
+use crate::io::ast::{Expr, Parameter, Property, Symbol};
 use crate::io::ast::Expr::{CallExpr, MemberExp};
 use crate::io::lexer::{Token, TokenKind};
 
@@ -92,6 +92,36 @@ impl ProgramParser {
     };
   }
 
+  fn parse_fn_declaration(&self) -> Expr {
+    self.eat();
+    let identifier = Symbol { name: self.expect(TokenKind::Identifier).value };
+    let args = self.parse_args();
+
+    let mut params = Vec::new();
+    for arg in args {
+      match arg {
+        Expr::Identifier(e) => { params.push(Parameter { name: e.name.clone() }); }
+        _ => return Expr::Error("Only Expr::Identifier expected".to_string())
+      }
+    }
+
+    self.expect(TokenKind::OpenBrace);
+    let mut body = Vec::new();
+    while self.at().kind != TokenKind::EOF && self.at().kind != TokenKind::CloseBrace {
+      body.push(self.parse_expr());
+      if self.at().kind == TokenKind::Semicolon {
+        self.eat();
+      }
+    }
+    self.expect(TokenKind::CloseBrace);
+
+    return Expr::FnDecl {
+      identifier,
+      params,
+      body,
+    };
+  }
+
   fn parse_expr(&self) -> Expr {
     self.parse_assign_expr()
   }
@@ -141,6 +171,7 @@ impl ProgramParser {
   fn parse_statement(&self) -> Expr {
     match self.at().kind {
       TokenKind::Let | TokenKind::Const => self.parse_var_declaration(),
+      TokenKind::Fn => self.parse_fn_declaration(),
       _ => self.parse_expr(),
     }
   }
