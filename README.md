@@ -4,11 +4,13 @@ Summary
 - comments: `//, /*...*/`
 - scope: `{...}`
 - equality: `!=` , `==`
+- inequality: `<`, `<=`, `=>`, `>`
 - logical operators: `&&`, `||`, `^^`
 - scalar types: `i`, `u`, `f`, `bool`, 
-- binary operators: `*`, `+`, `-`, `/`
+- binary operators: `*`, `+`, `-`, `/`, `%`
+- bit operators: `!`, `&`, `|`, `^`, `<<`, `>>`
 - generic: `Vec<T>`, `Map<K,V>`, `Set<T>`
-- complex: `union`, `enum`, `struct`
+- complex: `pack`, `enum`, `struct`
 
 ## declaration
 
@@ -23,11 +25,14 @@ Summary
 // Union
 // ---Alpha|-----Red|---Green|----Blue|
 // uninitialized fields will be marked with [core.Default]
-type Color = union{
+type Color = pack{
   value: u32;
   :struct{ a: u8; r: u8; g: u8; b: u8; };
   :struct{ a: u8; rgb: u24; };
 };
+
+type Zome<T> = i32 | Utf8 | Vec<T>;
+
 // 1. color = Color(value= 0xFFFFFFFF)
 // 2. color = Color(a=255, r=255, g=255, b=255)
 // 3. color = Color(a=0xFF, rgb= 0xFFFFFF) // first byte is zero (alpha)
@@ -44,9 +49,9 @@ type Info = struct{
 type Things = enum{
   Car;
   Truck;
-  Bike: struct{info: Info, quantity: u32};
-  Paint: Color;
-  Parts: Vec<struct{part: Utf8, color: Color}>;
+  Bike(struct{info: Info, quantity: u32});
+  Paint(Color);
+  Parts(Vec<struct{part: Utf8, color: Color}>);
 };
 
 type FancyType = struct{
@@ -57,7 +62,7 @@ type FancyType = struct{
 
 /*
 f = FancyType(
-  thing = Things.Paint(Color(value= 0xFF0000FF)),
+  thing = Things.Paint(Color{value: 0xFF0000FF}),
   info = (a = 42, b = 0),
 );
 bike = Things.Bike(info= Info(description= "Bike"), quantity= 42),

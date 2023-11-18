@@ -19,7 +19,7 @@ fn main() {
   context.let_variable("true", RuntimeValue::Bool(true));
   context.let_variable("false", RuntimeValue::Bool(false));
   context.let_variable("print", RuntimeValue::ExternFn(|args, _| {
-    println!("[extern]::print > {:?}", args);
+    println!("[extern::print] > {:?}", args);
     RuntimeValue::Void
   }));
   context.let_variable("status", RuntimeValue::ExternFn(|_, ctx| {
@@ -41,6 +41,7 @@ fn main() {
         let source = e;
         let tokens = tokenize(source);
         let program = parse(tokens);
+        println!("{:?}", program);
         let result = eval(program, ctx.clone());
         println!("> {:?}", result);
       }

@@ -13,10 +13,14 @@ pub enum Expr {
   FnDecl { identifier: Symbol, params: Vec<Parameter>, body: Box<Expr> },
   BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
   AssignExpr { target: Box<Expr>, value: Box<Expr> },
+  ConditionalExpr { left: Box<Expr>, right: Box<Expr> /*only ==*/ },
   MemberExpr { object: Box<Expr>, property: Box<Expr>, computed: bool },
   CallExpr { caller: Box<Expr>, args: Vec<Expr> },
   IfExpr { when: Box<Expr>, then: Box<Expr>, other: Option<Box<Expr>> },
   Body { body: Vec<Expr> },
+  Loop { body: Vec<Expr> },
+  Break,
+  Return { expr: Box<Expr> },
 
   //TODO: Halt / Panic / ....
   Error(String),
@@ -38,7 +42,7 @@ pub struct Property {
   pub value: Option<Expr>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Symbol {
   pub name: String,
 }

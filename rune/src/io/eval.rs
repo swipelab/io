@@ -18,6 +18,7 @@ pub enum RuntimeValue {
   Error(String),
   ExternFn(ExternFn),
   Fn { identifier: Symbol, params: Vec<Parameter>, body: Box<Expr>, decl_ctx: RefContext },
+  Break,
 }
 
 
@@ -201,9 +202,54 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::FnDecl { identifier, params, body } => eval_fn_decl(identifier, params, body, ctx.clone()),
     Expr::Body { body } => eval_body(body, ctx.clone()),
     Expr::IfExpr { when, then, other } => eval_if(*when, *then, other, ctx.clone()),
-    //Expr::MemberExp {  } => eval_member_exp(),
+    Expr::Loop { body } => eval_loop(body, ctx.clone()),
+    Expr::Break => RuntimeValue::Break,
+    Expr::ConditionalExpr { left, right } => eval_conditional_expr(*left, *right, ctx.clone()),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
+}
+
+fn eval_loop(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
+  let mut result = RuntimeValue::Never;
+  loop {
+    for expr in body.clone() {
+      result = eval(expr, ctx.clone());
+      if let RuntimeValue::Break = result {
+        break;
+      }
+    }
+    if let RuntimeValue::Break = result {
+      break;
+    }
+  }
+  result
+}
+
+fn eval_conditional_expr(left: Expr, right: Expr, ctx: RefContext) -> RuntimeValue {
+  let l = eval(left, ctx.clone());
+  let r = eval(right, ctx.clone());
+
+  match l {
+    RuntimeValue::Bool(lv) => {
+      if let RuntimeValue::Bool(rv) = r {
+        return RuntimeValue::Bool(lv == rv);
+      }
+    }
+    RuntimeValue::Int(lv) => {
+      if let RuntimeValue::Int(rv) = r {
+        return RuntimeValue::Bool(lv == rv);
+      }
+    }
+
+    RuntimeValue::Float(lv) => {
+      if let RuntimeValue::Float(rv) = r {
+        return RuntimeValue::Bool(lv == rv);
+      }
+    }
+    _ => {}
+  }
+
+  RuntimeValue::Error("not the same types".to_string())
 }
 
 fn eval_if(when: Expr, then: Expr, other: Option<Box<Expr>>, ctx: RefContext) -> RuntimeValue {
@@ -226,6 +272,10 @@ fn eval_body(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
   let mut result = RuntimeValue::Never;
   for expr in body {
     result = eval(expr, ctx.clone());
+    // ...
+    if let RuntimeValue::Break = result {
+      break;
+    }
   }
   result
 }

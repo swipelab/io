@@ -76,7 +76,7 @@ impl ProgramParser {
     let constant = self.eat().kind == TokenKind::Const;
     let identifier = self.expect(TokenKind::Identifier).value;
 
-    // TODO: define only :thinking:
+    // TODO: undefined var declaration :thinking:
     // if self.at().kind == TokenKind::Semicolon {
     //   self.eat()
     // }
@@ -92,7 +92,13 @@ impl ProgramParser {
     };
   }
 
-  fn parse_statement_body(&self) -> Expr {
+  fn parse_loop(&self) -> Expr {
+    self.eat();
+    let body = self.parse_statement_body();
+    return Expr::Loop { body };
+  }
+
+  fn parse_statement_body(&self) -> Vec<Expr> {
     let mut body = Vec::new();
     self.expect(TokenKind::OpenBrace);
     while self.at().kind != TokenKind::EOF && self.at().kind != TokenKind::CloseBrace {
@@ -102,20 +108,20 @@ impl ProgramParser {
       }
     }
     self.expect(TokenKind::CloseBrace);
-    Expr::Body { body }
+    body
   }
 
   fn parse_if_statement(&self) -> Expr {
     self.eat();
     let condition = self.parse_expr();
-    let then = self.parse_statement_body();
+    let then = Expr::Body { body: self.parse_statement_body() };
 
     let other = if self.at().kind == TokenKind::Else {
       self.eat();
       let token = self.at().kind;
       let expr = match token {
         TokenKind::If => self.parse_if_statement(),
-        TokenKind::OpenBrace => self.parse_statement_body(),
+        TokenKind::OpenBrace => Expr::Body { body: self.parse_statement_body() },
         _ => self.parse_statement()
       };
       Some(Box::new(expr))
@@ -143,17 +149,30 @@ impl ProgramParser {
       }
     }
 
-    let body = self.parse_statement_body();
+    let body = Box::new(Expr::Body { body: self.parse_statement_body() });
 
     return Expr::FnDecl {
       identifier,
       params,
-      body: Box::new(body),
+      body,
     };
   }
 
   fn parse_expr(&self) -> Expr {
     self.parse_assign_expr()
+  }
+
+  fn parse_conditional_expr(&self) -> Expr {
+    let mut left = self.parse_add_expr();
+    if self.at().kind == TokenKind::DoubleEquals {
+      self.eat();
+      let right = self.parse_add_expr();
+      return Expr::ConditionalExpr {
+        left: Box::new(left),
+        right: Box::new(right),
+      };
+    }
+    left
   }
 
   fn parse_assign_expr(&self) -> Expr {
@@ -173,7 +192,7 @@ impl ProgramParser {
     // { key = expr,  }
 
     if self.at().kind != TokenKind::OpenBrace {
-      return self.parse_add_expr();
+      return self.parse_conditional_expr();
     }
     self.eat();
     let mut props = Vec::new();
@@ -203,6 +222,12 @@ impl ProgramParser {
       TokenKind::Let | TokenKind::Const => self.parse_var_declaration(),
       TokenKind::Fn => self.parse_fn_declaration(),
       TokenKind::If => self.parse_if_statement(),
+      TokenKind::Loop => self.parse_loop(),
+      TokenKind::OpenBrace => Expr::Body { body: self.parse_statement_body() },
+      TokenKind::Break => {
+        self.eat();
+        Expr::Break
+      }
       _ => self.parse_expr(),
     }
   }

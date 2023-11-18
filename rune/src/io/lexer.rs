@@ -1,6 +1,5 @@
 use std::clone::Clone;
 use std::sync::Mutex;
-use phf::phf_map;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TokenKind {
@@ -10,6 +9,7 @@ pub enum TokenKind {
   Identifier,
   BinaryOperator,
   Equals,
+  DoubleEquals,
   Semicolon,
   Colon,
   Comma,
@@ -27,6 +27,11 @@ pub enum TokenKind {
   Enum,
   If,
   Else,
+  Pub,
+  Match,
+  Loop,
+  Break,
+  Return,
   EOF,
 }
 
@@ -36,17 +41,25 @@ pub struct Token {
   pub value: String,
 }
 
-pub static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
-  "let" => TokenKind::Let,
-  "const" => TokenKind::Const,
-  "type" => TokenKind::Type,
-  "enum" => TokenKind::Enum,
-  "union" => TokenKind::Union,
-  "struct" => TokenKind::Struct,
-  "fn" => TokenKind::Fn,
-  "if" => TokenKind::If,
-  "else" => TokenKind::Else,
-};
+pub fn keyword(value: &str) -> Option<TokenKind> {
+  match value {
+    "let" => Some(TokenKind::Let),
+    "const" => Some(TokenKind::Const),
+    "type" => Some(TokenKind::Type),
+    "enum" => Some(TokenKind::Enum),
+    "union" => Some(TokenKind::Union),
+    "struct" => Some(TokenKind::Struct),
+    "fn" => Some(TokenKind::Fn),
+    "if" => Some(TokenKind::If),
+    "else" => Some(TokenKind::Else),
+    "pub" => Some(TokenKind::Pub),
+    "match" => Some(TokenKind::Match),
+    "loop" => Some(TokenKind::Loop),
+    "break" => Some(TokenKind::Break),
+    "return" => Some(TokenKind::Return),
+    _ => None
+  }
+}
 
 pub fn tokenize(source: &str) -> Vec<Token> {
   let src = source;
@@ -116,7 +129,16 @@ pub fn tokenize(source: &str) -> Vec<Token> {
       "}" => push(TokenKind::CloseBrace, shift()),
       "[" => push(TokenKind::OpenBracket, shift()),
       "]" => push(TokenKind::CloseBracket, shift()),
-      "=" => push(TokenKind::Equals, shift()),
+      "=" => {
+        shift();
+        match at() {
+          "=" => {
+            shift();
+            push(TokenKind::DoubleEquals, "==");
+          }
+          _ => push(TokenKind::Equals, "="),
+        }
+      }
       ":" => push(TokenKind::Colon, shift()),
       ";" => push(TokenKind::Semicolon, shift()),
       "," => push(TokenKind::Comma, shift()),
@@ -134,8 +156,8 @@ pub fn tokenize(source: &str) -> Vec<Token> {
         while more() && is_identifier(at()) {
           value.push_str(shift())
         }
-        if let Some(e) = KEYWORDS.get(value.as_str()) {
-          push(*e, value.as_str())
+        if let Some(e) = keyword(value.as_str()) {
+          push(e, value.as_str())
         } else {
           push(TokenKind::Identifier, value.as_str())
         }
