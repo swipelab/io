@@ -1,6 +1,5 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::sync::{Arc, Mutex};
 use crate::io::ast::{Expr, Parameter, Property, Symbol};
@@ -18,7 +17,7 @@ pub enum RuntimeValue {
   Object(HashMap<String, RuntimeValue>),
   Error(String),
   ExternFn(ExternFn),
-  Fn { identifier: Symbol, params: Vec<Parameter>, body: Vec<Expr>, decl_ctx: RefContext },
+  Fn { identifier: Symbol, params: Vec<Parameter>, body: Box<Expr>, decl_ctx: RefContext },
 }
 
 
@@ -167,7 +166,7 @@ fn eval_call(caller: Expr, args: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
 
   match f {
     RuntimeValue::ExternFn(delegate) => delegate(a, ctx.clone()),
-    RuntimeValue::Fn { identifier, body, params, decl_ctx } => {
+    RuntimeValue::Fn { body, params, decl_ctx, .. } => {
       let mut context = Context {
         parent: Some(decl_ctx.clone()),
         variables: HashMap::new(),
@@ -181,11 +180,7 @@ fn eval_call(caller: Expr, args: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
       }
 
       let context = Arc::new(Mutex::new(context));
-      let mut result = RuntimeValue::Never;
-      for expr in body {
-        result = eval(expr, context.clone());
-      }
-      result
+      eval(*body, context.clone())
     }
     _ => RuntimeValue::Error(format!("{:?} not a function ", caller))
   }
@@ -204,18 +199,45 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::Object { props } => eval_object(props, ctx.clone()),
     Expr::CallExpr { caller, args } => eval_call(*caller, args, ctx.clone()),
     Expr::FnDecl { identifier, params, body } => eval_fn_decl(identifier, params, body, ctx.clone()),
+    Expr::Body { body } => eval_body(body, ctx.clone()),
+    Expr::IfExpr { when, then, other } => eval_if(*when, *then, other, ctx.clone()),
     //Expr::MemberExp {  } => eval_member_exp(),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
 }
 
-fn eval_fn_decl(identifier: Symbol, params: Vec<Parameter>, body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
+fn eval_if(when: Expr, then: Expr, other: Option<Box<Expr>>, ctx: RefContext) -> RuntimeValue {
+  let condition = eval(when, ctx.clone());
+  match condition {
+    RuntimeValue::Bool(branch) => {
+      if branch {
+        eval(then, ctx)
+      } else if let Some(e) = other {
+        eval(*e, ctx)
+      } else {
+        RuntimeValue::Never
+      }
+    }
+    _ => RuntimeValue::Error("invalid condition".to_string())
+  }
+}
+
+fn eval_body(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
+  let mut result = RuntimeValue::Never;
+  for expr in body {
+    result = eval(expr, ctx.clone());
+  }
+  result
+}
+
+fn eval_fn_decl(identifier: Symbol, params: Vec<Parameter>, body: Box<Expr>, ctx: RefContext) -> RuntimeValue {
   let function = RuntimeValue::Fn {
     identifier: identifier.clone(),
     params,
     body,
     decl_ctx: ctx.clone(),
   };
+  // declare the function
   ctx.lock().unwrap().let_variable(identifier.name.as_str(), function.clone());
   return function;
 }

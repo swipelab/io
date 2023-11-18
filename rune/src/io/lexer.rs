@@ -25,6 +25,8 @@ pub enum TokenKind {
   Fn,
   Union,
   Enum,
+  If,
+  Else,
   EOF,
 }
 
@@ -42,8 +44,9 @@ pub static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
   "union" => TokenKind::Union,
   "struct" => TokenKind::Struct,
   "fn" => TokenKind::Fn,
+  "if" => TokenKind::If,
+  "else" => TokenKind::Else,
 };
-
 
 pub fn tokenize(source: &str) -> Vec<Token> {
   let src = source;

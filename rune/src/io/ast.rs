@@ -10,11 +10,13 @@ pub enum BinaryOp {
 pub enum Expr {
   Program(Vec<Expr>),
   VarDecl { constant: bool, identifier: Symbol, value: Box<Expr> },
-  FnDecl { identifier: Symbol, params: Vec<Parameter>, body: Vec<Expr> },
+  FnDecl { identifier: Symbol, params: Vec<Parameter>, body: Box<Expr> },
   BinaryExpr { left: Box<Expr>, right: Box<Expr>, op: String },
   AssignExpr { target: Box<Expr>, value: Box<Expr> },
-  MemberExp { object: Box<Expr>, property: Box<Expr>, computed: bool },
+  MemberExpr { object: Box<Expr>, property: Box<Expr>, computed: bool },
   CallExpr { caller: Box<Expr>, args: Vec<Expr> },
+  IfExpr { when: Box<Expr>, then: Box<Expr>, other: Option<Box<Expr>> },
+  Body { body: Vec<Expr> },
 
   //TODO: Halt / Panic / ....
   Error(String),
@@ -22,6 +24,7 @@ pub enum Expr {
 
   // literals
   Identifier(Symbol),
+
   //TODO: turn into RuntimeValue
   String(String),
   Number(String),
