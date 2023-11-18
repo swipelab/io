@@ -204,7 +204,8 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::IfExpr { when, then, other } => eval_if(*when, *then, other, ctx.clone()),
     Expr::Loop { body } => eval_loop(body, ctx.clone()),
     Expr::Break => RuntimeValue::Break,
-    Expr::ConditionalExpr { left, right } => eval_conditional_expr(*left, *right, ctx.clone()),
+    Expr::Eq { left, right } => eval_eq(*left, *right, ctx.clone()),
+    Expr::NotEq { left, right } => eval_not_eq(*left, *right, ctx.clone()),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
 }
@@ -225,9 +226,36 @@ fn eval_loop(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
   result
 }
 
-fn eval_conditional_expr(left: Expr, right: Expr, ctx: RefContext) -> RuntimeValue {
+fn eval_not_eq(left: Expr, right: Expr, ctx: RefContext) -> RuntimeValue {
   let l = eval(left, ctx.clone());
-  let r = eval(right, ctx.clone());
+  let r = eval(right, ctx);
+
+  match l {
+    RuntimeValue::Bool(lv) => {
+      if let RuntimeValue::Bool(rv) = r {
+        return RuntimeValue::Bool(lv != rv);
+      }
+    }
+    RuntimeValue::Int(lv) => {
+      if let RuntimeValue::Int(rv) = r {
+        return RuntimeValue::Bool(lv != rv);
+      }
+    }
+
+    RuntimeValue::Float(lv) => {
+      if let RuntimeValue::Float(rv) = r {
+        return RuntimeValue::Bool(lv != rv);
+      }
+    }
+    _ => {}
+  }
+
+  RuntimeValue::Error("not the same types".to_string())
+}
+
+fn eval_eq(left: Expr, right: Expr, ctx: RefContext) -> RuntimeValue {
+  let l = eval(left, ctx.clone());
+  let r = eval(right, ctx);
 
   match l {
     RuntimeValue::Bool(lv) => {

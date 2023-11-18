@@ -9,7 +9,9 @@ pub enum TokenKind {
   Identifier,
   BinaryOperator,
   Equals,
-  DoubleEquals,
+  Eq,
+  NotEq,
+  Not,
   Semicolon,
   Colon,
   Comma,
@@ -129,21 +131,31 @@ pub fn tokenize(source: &str) -> Vec<Token> {
       "}" => push(TokenKind::CloseBrace, shift()),
       "[" => push(TokenKind::OpenBracket, shift()),
       "]" => push(TokenKind::CloseBracket, shift()),
-      "=" => {
-        shift();
-        match at() {
-          "=" => {
-            shift();
-            push(TokenKind::DoubleEquals, "==");
-          }
-          _ => push(TokenKind::Equals, "="),
-        }
-      }
       ":" => push(TokenKind::Colon, shift()),
       ";" => push(TokenKind::Semicolon, shift()),
       "," => push(TokenKind::Comma, shift()),
       "." => push(TokenKind::Dot, shift()),
       "-" | "+" | "*" | "/" | "%" => push(TokenKind::BinaryOperator, shift()),
+      "!" => {
+        shift();
+        match at() {
+          "=" => {
+            shift();
+            push(TokenKind::NotEq, "!=");
+          }
+          _ => push(TokenKind::Not, "!"),
+        }
+      }
+      "=" => {
+        shift();
+        match at() {
+          "=" => {
+            shift();
+            push(TokenKind::Eq, "==");
+          }
+          _ => push(TokenKind::Equals, "="),
+        }
+      }
       e if is_int(e) => {
         let mut value = "".to_owned();
         while more() && is_number(at()) {
@@ -164,7 +176,7 @@ pub fn tokenize(source: &str) -> Vec<Token> {
       }
       e if is_skippable(e) => { shift(); }
       e => {
-        println!("unexpected char :>{e}");
+        println!("unexpected char [{e}]");
         break;
       }
     }

@@ -163,14 +163,25 @@ impl ProgramParser {
   }
 
   fn parse_conditional_expr(&self) -> Expr {
-    let mut left = self.parse_add_expr();
-    if self.at().kind == TokenKind::DoubleEquals {
-      self.eat();
-      let right = self.parse_add_expr();
-      return Expr::ConditionalExpr {
-        left: Box::new(left),
-        right: Box::new(right),
-      };
+    let left = self.parse_add_expr();
+    match self.at().kind {
+      TokenKind::Eq => {
+        self.eat();
+        let right = self.parse_add_expr();
+        return Expr::Eq {
+          left: Box::new(left),
+          right: Box::new(right),
+        };
+      }
+      TokenKind::NotEq => {
+        self.eat();
+        let right = self.parse_add_expr();
+        return Expr::NotEq {
+          left: Box::new(left),
+          right: Box::new(right),
+        };
+      }
+      _ => {}
     }
     left
   }
