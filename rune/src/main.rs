@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::io::{Write};
 use std::sync::{Arc, Mutex};
 use std::process::{exit};
-use rune::io::eval::{eval, Context, RuntimeValue};
+use rune::io::eval::{eval};
 use rune::io::lexer::{tokenize};
-use rune::io::parser::parse;
-
+use rune::io::parser::{parse};
+use rune::io::runtime::{Context, RuntimeValue};
 
 fn main() {
   println!();
@@ -40,10 +40,16 @@ fn main() {
       e => {
         let source = e;
         let tokens = tokenize(source);
-        let program = parse(tokens);
-        println!("{:?}", program);
-        let result = eval(program, ctx.clone());
-        println!("> {:?}", result);
+        let parsed = parse(tokens);
+        match parsed {
+          Ok(program) => {
+            let result = eval(program, ctx.clone());
+            println!("> {:?}", result);
+          }
+          Err(error) => {
+            println!("{}", error.message);
+          }
+        }
       }
     }
   }

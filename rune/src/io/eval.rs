@@ -3,24 +3,7 @@ use std::collections::HashMap;
 use std::ops::{Add, Div, Mul, Rem, Sub};
 use std::sync::{Arc, Mutex};
 use crate::io::ast::{Expr, Parameter, Property, Symbol};
-
-pub type RefContext = Arc<Mutex<Context>>;
-pub type ExternFn = fn(args: Vec<RuntimeValue>, ctx: RefContext) -> RuntimeValue;
-
-#[derive(Debug, Clone)]
-pub enum RuntimeValue {
-  Never,
-  Void,
-  Bool(bool),
-  Float(f64),
-  Int(i64),
-  Object(HashMap<String, RuntimeValue>),
-  Error(String),
-  ExternFn(ExternFn),
-  Fn { identifier: Symbol, params: Vec<Parameter>, body: Box<Expr>, decl_ctx: RefContext },
-  Break,
-}
-
+use crate::io::runtime::{Context, RefContext, RuntimeValue};
 
 fn eval_number_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
   where T: Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T> + Rem<Output=T>
@@ -97,11 +80,6 @@ fn eval_binary_expr(left: Expr, right: Expr, op: String, ctx: RefContext) -> Run
   }
 }
 
-#[derive(Debug)]
-pub struct Context {
-  pub parent: Option<RefContext>,
-  pub variables: HashMap<String, RuntimeValue>,
-}
 
 impl Context {
   pub fn get_variable(&mut self, name: &str) -> Option<RuntimeValue> {
@@ -184,29 +162,6 @@ fn eval_call(caller: Expr, args: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
       eval(*body, context.clone())
     }
     _ => RuntimeValue::Error(format!("{:?} not a function ", caller))
-  }
-}
-
-pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
-  match node {
-    Expr::Program(e) => eval_program(e, ctx.clone()),
-    Expr::Never => RuntimeValue::Never,
-    Expr::Error(e) => RuntimeValue::Error(e),
-    Expr::Number(e) => eval_number(e),
-    Expr::BinaryExpr { left, right, op } => eval_binary_expr(*left, *right, op, ctx.clone()),
-    Expr::Identifier(e) => eval_identifier(e, ctx.clone()),
-    Expr::VarDecl { value, identifier, .. } => eval_var_decl(identifier, *value, ctx.clone()),
-    Expr::AssignExpr { target: lhs, value: rhs } => eval_assign_expr(*lhs, *rhs, ctx.clone()),
-    Expr::Object { props } => eval_object(props, ctx.clone()),
-    Expr::CallExpr { caller, args } => eval_call(*caller, args, ctx.clone()),
-    Expr::FnDecl { identifier, params, body } => eval_fn_decl(identifier, params, body, ctx.clone()),
-    Expr::Body { body } => eval_body(body, ctx.clone()),
-    Expr::IfExpr { when, then, other } => eval_if(*when, *then, other, ctx.clone()),
-    Expr::Loop { body } => eval_loop(body, ctx.clone()),
-    Expr::Break => RuntimeValue::Break,
-    Expr::Eq { left, right } => eval_eq(*left, *right, ctx.clone()),
-    Expr::NotEq { left, right } => eval_not_eq(*left, *right, ctx.clone()),
-    _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
 }
 
@@ -318,4 +273,27 @@ fn eval_fn_decl(identifier: Symbol, params: Vec<Parameter>, body: Box<Expr>, ctx
   // declare the function
   ctx.lock().unwrap().let_variable(identifier.name.as_str(), function.clone());
   return function;
+}
+
+pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
+  match node {
+    Expr::Program(e) => eval_program(e, ctx.clone()),
+    Expr::Never => RuntimeValue::Never,
+    Expr::Error(e) => RuntimeValue::Error(e),
+    Expr::Number(e) => eval_number(e),
+    Expr::BinaryExpr { left, right, op } => eval_binary_expr(*left, *right, op, ctx.clone()),
+    Expr::Identifier(e) => eval_identifier(e, ctx.clone()),
+    Expr::VarDecl { value, identifier, .. } => eval_var_decl(identifier, *value, ctx.clone()),
+    Expr::AssignExpr { target: lhs, value: rhs } => eval_assign_expr(*lhs, *rhs, ctx.clone()),
+    Expr::Object { props } => eval_object(props, ctx.clone()),
+    Expr::CallExpr { caller, args } => eval_call(*caller, args, ctx.clone()),
+    Expr::FnDecl { identifier, params, body } => eval_fn_decl(identifier, params, body, ctx.clone()),
+    Expr::Body { body } => eval_body(body, ctx.clone()),
+    Expr::IfExpr { when, then, other } => eval_if(*when, *then, other, ctx.clone()),
+    Expr::Loop { body } => eval_loop(body, ctx.clone()),
+    Expr::Break => RuntimeValue::Break,
+    Expr::Eq { left, right } => eval_eq(*left, *right, ctx.clone()),
+    Expr::NotEq { left, right } => eval_not_eq(*left, *right, ctx.clone()),
+    _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
+  }
 }

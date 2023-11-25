@@ -1,11 +1,3 @@
-pub enum BinaryOp {
-  Add,
-  Sub,
-  Mul,
-  Div,
-  Mod,
-}
-
 #[derive(Debug, Clone)]
 pub enum Expr {
   Program(Vec<Expr>),
@@ -35,6 +27,14 @@ pub enum Expr {
   Number(String),
   Object { props: Vec<Property> },
   Property(Box<Property>),
+}
+
+pub enum BinaryOp {
+  Add,
+  Sub,
+  Mul,
+  Div,
+  Mod,
 }
 
 #[derive(Debug, Clone)]
