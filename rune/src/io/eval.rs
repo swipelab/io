@@ -305,6 +305,7 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::Return { expr } => RuntimeValue::Signal(Signal::Return(Box::new(eval(*expr, ctx.clone())))),
     Expr::Eq { left, right } => eval_eq(*left, *right, ctx.clone()),
     Expr::NotEq { left, right } => eval_not_eq(*left, *right, ctx.clone()),
+    Expr::String(e) => RuntimeValue::String(e),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))
   }
 }

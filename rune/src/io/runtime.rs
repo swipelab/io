@@ -20,6 +20,7 @@ pub enum RuntimeValue {
   Bool(bool),
   Float(f64),
   Int(i64),
+  String(String),
   Object(HashMap<String, RuntimeValue>),
   Error(String),
   ExternFn(ExternFn),

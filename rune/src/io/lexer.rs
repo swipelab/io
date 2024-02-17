@@ -6,6 +6,7 @@ pub enum TokenKind {
   Let,
   Const,
   Number,
+  String,
   Identifier,
   BinaryOperator,
   Equals,
@@ -137,6 +138,15 @@ pub fn tokenize(source: &str) -> Vec<Token> {
       "," => push(TokenKind::Comma, shift()),
       "." => push(TokenKind::Dot, shift()),
       "-" | "+" | "*" | "/" | "%" => push(TokenKind::BinaryOperator, shift()),
+      "\"" => {
+        shift();
+        let mut value = "".to_owned();
+        while more() && at() != "\"" {
+          value.push_str(shift())
+        }
+        shift();
+        push(TokenKind::String, value.as_str());
+      }
       "!" => {
         shift();
         match at() {

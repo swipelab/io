@@ -273,14 +273,9 @@ impl ProgramParser {
   fn parse_primary_expr(&self) -> ParseResult {
     let current = self.at();
     match current.kind {
-      TokenKind::Number => {
-        Expr::Number(
-          self.eat().value.clone()
-        ).into()
-      }
-      TokenKind::Identifier => {
-        Expr::Identifier(Symbol { name: self.eat().value.clone() }).into()
-      }
+      TokenKind::Number => Expr::Number(self.eat().value.clone()).into(),
+      TokenKind::String => Expr::String(self.eat().value.clone()).into(),
+      TokenKind::Identifier => Expr::Identifier(Symbol { name: self.eat().value.clone() }).into(),
       TokenKind::OpenParenthesis => {
         self.eat();
         let expr = self.parse_expr();
