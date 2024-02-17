@@ -260,6 +260,12 @@ impl ProgramParser {
         self.eat();
         Expr::Break.into()
       }
+      TokenKind::Return => {
+        self.eat();
+        Expr::Return {
+          expr: Box::new(self.parse_expr()?),
+        }.into()
+      }
       _ => self.parse_expr(),
     }
   }

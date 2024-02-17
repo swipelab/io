@@ -1,77 +1,99 @@
+# io
+
+Welcome to `io` programming language
+
 ## grammar
 
 Summary
+
 - comments: `//, /*...*/`
-- scope: `{...}`
+- unit: `()`
+- scope: `{ ... }`
 - equality: `!=` , `==`
 - inequality: `<`, `<=`, `=>`, `>`
 - logical operators: `&&`, `||`, `^^`
-- scalar types: `i`, `u`, `f`, `bool`, 
+- types: `i`, `u`, `f`, `bool`, `()`, `pack`, `enum`, `struct`, `trait`, `set`
 - binary operators: `*`, `+`, `-`, `/`, `%`
 - bit operators: `!`, `&`, `|`, `^`, `<<`, `>>`
 - generic: `Vec<T>`, `Map<K,V>`, `Set<T>`
-- complex: `pack`, `enum`, `struct`
 
 ## declaration
 
 | Examples |                                      |
-| -------- | ------------------------------------ |
-| variable | foo: i32 = 42;                       |
+|----------|--------------------------------------|
+| variable | let foo: i32 = 42;                   |
 | function | foo: (bar: i32) -> i32 = { bar * 2 } |
 
-## sample
-
 ```io
-// Union
+
+// Set
+// Enables creating an arbitrary type set
+type Accepted: set{bool; int; Utf8}
+
+
+// Pack
+// Eg: Color 
 // ---Alpha|-----Red|---Green|----Blue|
-// uninitialized fields will be marked with [core.Default]
-type Color = pack{
-  value: u32;
-  :struct{ a: u8; r: u8; g: u8; b: u8; };
-  :struct{ a: u8; rgb: u24; };
+type Color: pack{
+  //32 bit unsigned int across   
+  value: u32 = [0..<32];
+  a: u8 = [0..<8];
+  //skip 8 take 8
+  r: u8 = [8..<16];
+  g: u8 = [16..<24];
+  b: u8 = [24..<32];
+  rgb: u24 = [8..<32];
 };
 
-type Zome<T> = i32 | Utf8 | Vec<T>;
+//
+// 1. color = Color{value: 0xFFFFFFFF}
+// 2. color = Color{a:255, r:255, g:255, b:255}
+// 3. color = Color{a:0xFF, rgb: 0xFFFFFF} 
 
-// 1. color = Color(value= 0xFFFFFFFF)
-// 2. color = Color(a=255, r=255, g=255, b=255)
-// 3. color = Color(a=0xFF, rgb= 0xFFFFFF) // first byte is zero (alpha)
-
-// Alias
-type VecI32 = Vec<i32>;
-
-// Struct
-type Info = struct{  
+// Structs
+type Info: struct{  
   description: Utf8;
 };
 
-// Experimental ADT 
-type Things = enum{
-  Car;
-  Truck;
-  Bike(struct{info: Info, quantity: u32});
-  Paint(Color);
-  Parts(Vec<struct{part: Utf8, color: Color}>);
+type FancyType: struct{
+  thing: Things;
+  // unammed struct, internally it would be considered FancyType_info
+  info: struct{ a, b: i32 };
 };
 
-type FancyType = struct{
-  thing: Things;
-  // unammed struct
-  info: struct{ a, b: i32};
+// Experimental ADT 
+type Things: enum{
+  Car;
+  Truck;
+  //type name for the struct would be Things_Bike_0
+  Bike(struct{info: Info, quantity: u32});
+  Paint(Color);
+  //Things_Parts_0
+  Parts(Vec<struct{part: Utf8, color: Color}>);
+  Link(Map<i32, struct{}>);
 };
+
+// Function
+// No Arguments and No Return
+type Callback : ()
+// Getter Of T
+type Getter<T>: () -> T
+// Setter Of T
+type Setter<T>: (T) 
+// Convert
+type Convert<I,O>: (I) -> O
+// Alias, type encoding
+type VectorOfInt = Vec<i32>;
 
 /*
 f = FancyType(
   thing = Things.Paint(Color{value: 0xFF0000FF}),
   info = (a = 42, b = 0),
 );
-bike = Things.Bike(info= Info(description= "Bike"), quantity= 42),
+bike = Things.Bike{info: Info{description: "Bike"}, quantity: 42},
 */
 
-type Option<T> = enum{
-  Some: T;
-  None;
-};
+
 
 groupBy<K,V>: (items: Vec<T>, key: (item: T) -> K) -> Map<K, Vec<V>> = {
   items.fold(Map(), (acc, item) {
@@ -110,7 +132,7 @@ quickSort<T: Ord>: (mut items: Vec<T>) = {
     i + 1
   }
 
-  sort: (mut items: Vec<T>, low, high: i32) = {
+  sort: (mut items: Vec<T>, low: i32, high: i32) = {
     if low < high {
       pi = partition(items, low, high);
       quickSort(items, low, pi - 1);

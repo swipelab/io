@@ -1,9 +1,10 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::{Add, Div, Mul, Rem, Sub};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use crate::io::ast::{Expr, Parameter, Property, Symbol};
-use crate::io::runtime::{Context, RefContext, RuntimeValue};
+use crate::io::runtime::{Context, RefContext, RuntimeValue, Signal};
 
 fn eval_number_binary_operation<T>(lhs: T, rhs: T, op: &str) -> T
   where T: Add<Output=T> + Sub<Output=T> + Mul<Output=T> + Div<Output=T> + Rem<Output=T>
@@ -154,31 +155,52 @@ fn eval_call(caller: Expr, args: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
       for (i, param) in params.iter().enumerate() {
         match a.get(i) {
           Some(value) => { context.let_variable(param.name.as_str(), value.to_owned()); }
-          None => { return RuntimeValue::Error("too many args".to_string()); }
+          None => { return RuntimeValue::Error(format!("invalid args")); }
         }
       }
 
       let context = Arc::new(Mutex::new(context));
-      eval(*body, context.clone())
+      let result = eval(*body, context.clone());
+      if let RuntimeValue::Signal(e) = result.clone() {
+        return match e {
+          Signal::Break => RuntimeValue::Never,
+          Signal::Return(e) => *e
+        };
+      }
+      result
     }
     _ => RuntimeValue::Error(format!("{:?} not a function ", caller))
   }
 }
 
-fn eval_loop(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
+fn eval_body(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
   let mut result = RuntimeValue::Never;
-  loop {
-    for expr in body.clone() {
-      result = eval(expr, ctx.clone());
-      if let RuntimeValue::Break = result {
-        break;
-      }
+  for expr in body {
+    let line = eval(expr, ctx.clone());
+    if let RuntimeValue::Signal(_) = line.clone() {
+      return line;
     }
-    if let RuntimeValue::Break = result {
-      break;
-    }
+    result = line;
   }
   result
+}
+
+
+fn eval_loop(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
+  let mut result = RuntimeValue::Never;
+
+  loop {
+    for expr in body.clone() {
+      let line = eval(expr, ctx.clone());
+      if let RuntimeValue::Signal(e) = line.clone() {
+        return match e {
+          Signal::Break => result,
+          Signal::Return(_) => line,
+        };
+      }
+      result = line
+    }
+  }
 }
 
 fn eval_not_eq(left: Expr, right: Expr, ctx: RefContext) -> RuntimeValue {
@@ -251,18 +273,6 @@ fn eval_if(when: Expr, then: Expr, other: Option<Box<Expr>>, ctx: RefContext) ->
   }
 }
 
-fn eval_body(body: Vec<Expr>, ctx: RefContext) -> RuntimeValue {
-  let mut result = RuntimeValue::Never;
-  for expr in body {
-    result = eval(expr, ctx.clone());
-    // ...
-    if let RuntimeValue::Break = result {
-      break;
-    }
-  }
-  result
-}
-
 fn eval_fn_decl(identifier: Symbol, params: Vec<Parameter>, body: Box<Expr>, ctx: RefContext) -> RuntimeValue {
   let function = RuntimeValue::Fn {
     identifier: identifier.clone(),
@@ -291,7 +301,8 @@ pub fn eval(node: Expr, ctx: RefContext) -> RuntimeValue {
     Expr::Body { body } => eval_body(body, ctx.clone()),
     Expr::IfExpr { when, then, other } => eval_if(*when, *then, other, ctx.clone()),
     Expr::Loop { body } => eval_loop(body, ctx.clone()),
-    Expr::Break => RuntimeValue::Break,
+    Expr::Break => RuntimeValue::Signal(Signal::Break),
+    Expr::Return { expr } => RuntimeValue::Signal(Signal::Return(Box::new(eval(*expr, ctx.clone())))),
     Expr::Eq { left, right } => eval_eq(*left, *right, ctx.clone()),
     Expr::NotEq { left, right } => eval_not_eq(*left, *right, ctx.clone()),
     _ => RuntimeValue::Error(format!("{:?} doesn't implement [eval]", node))

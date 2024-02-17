@@ -10,7 +10,6 @@ use rune::io::runtime::{Context, RuntimeValue};
 fn main() {
   println!();
   println!("io.repl v.0.0.1");
-
   let mut context = Context {
     parent: None,
     variables: HashMap::new(),
@@ -20,11 +19,11 @@ fn main() {
   context.let_variable("false", RuntimeValue::Bool(false));
   context.let_variable("print", RuntimeValue::ExternFn(|args, _| {
     println!("[extern::print] > {:?}", args);
-    RuntimeValue::Void
+    RuntimeValue::Never
   }));
   context.let_variable("status", RuntimeValue::ExternFn(|_, ctx| {
     ctx.lock().unwrap().variables.iter().for_each(|e| println!("{:?}", e));
-    RuntimeValue::Void
+    RuntimeValue::Never
   }));
   let ctx = Arc::new(Mutex::new(context));
 

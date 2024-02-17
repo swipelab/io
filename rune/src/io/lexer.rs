@@ -65,6 +65,7 @@ pub fn keyword(value: &str) -> Option<TokenKind> {
 
 pub fn tokenize(source: &str) -> Vec<Token> {
   let src = source;
+
   let mut tokens: Vec<Token> = vec![];
   let index = Mutex::new(0);
 
