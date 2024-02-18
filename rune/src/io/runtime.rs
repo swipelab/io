@@ -3,7 +3,7 @@ use std::fmt;
 use std::fmt::Formatter;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
-use crate::io::ast::{Expr, Parameter, Symbol};
+use crate::io::expr::{Expr, Parameter, Symbol};
 
 pub type RefContext = Arc<Mutex<Context>>;
 pub type RefSignal = Arc<Sender<Signal>>;

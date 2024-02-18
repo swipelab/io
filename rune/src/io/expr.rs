@@ -29,14 +29,6 @@ pub enum Expr {
   Property(Box<Property>),
 }
 
-pub enum BinaryOp {
-  Add,
-  Sub,
-  Mul,
-  Div,
-  Mod,
-}
-
 #[derive(Debug, Clone)]
 pub struct Property {
   pub identifier: Symbol,
