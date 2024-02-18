@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::process::{exit};
 use rune::io::eval::{eval};
 use rune::io::lexer::{tokenize};
-use rune::io::parser::{parse, ParseResult};
+use rune::io::parser::{parse};
 use rune::io::runtime::{Context, RefContext, RuntimeValue};
 
 struct Query {

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use std::error::Error;
+use std::fmt;
+use std::fmt::Formatter;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 use crate::io::ast::{Expr, Parameter, Symbol};
@@ -8,11 +9,6 @@ pub type RefContext = Arc<Mutex<Context>>;
 pub type RefSignal = Arc<Sender<Signal>>;
 
 pub type ExternFn = fn(args: Vec<RuntimeValue>, ctx: RefContext) -> RuntimeValue;
-
-enum Color {
-  V1 { a: i32 },
-  V2 { b: i64 },
-}
 
 #[derive(Debug, Clone)]
 pub enum RuntimeValue {
@@ -28,6 +24,23 @@ pub enum RuntimeValue {
 
   /// investigate if we can move one level higher ( potentially at the state machine level )
   Signal(Signal),
+}
+
+impl fmt::Display for RuntimeValue {
+  fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    match self.to_owned() {
+      RuntimeValue::Never => write!(f, "never"),
+      RuntimeValue::Bool(e) => write!(f, "{:?}", e),
+      RuntimeValue::Float(e) => write!(f, "{:?}", e),
+      RuntimeValue::Int(e) => write!(f, "{:?}", e),
+      RuntimeValue::String(e) => write!(f, "{:?}", e),
+      RuntimeValue::Object(_) => write!(f, "object"),
+      RuntimeValue::Error(e) => write!(f, "{:?}", e),
+      RuntimeValue::ExternFn(_) => write!(f, "external_fn"),
+      RuntimeValue::Fn { identifier, .. } => write!(f, "{:?}", identifier),
+      RuntimeValue::Signal(e) => write!(f, "signal::{:?}", e),
+    }
+  }
 }
 
 //TODO: finalise idea --- dispatch break & return

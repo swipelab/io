@@ -1,7 +1,6 @@
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::ops::{Add, Div, Mul, Rem, Sub};
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use crate::io::ast::{Expr, Parameter, Property, Symbol};
 use crate::io::runtime::{Context, RefContext, RuntimeValue, Signal};
@@ -65,6 +64,7 @@ fn eval_binary_expr(left: Expr, right: Expr, op: String, ctx: RefContext) -> Run
       match rhs {
         RuntimeValue::Float(r) => return RuntimeValue::Float(eval_number_binary_operation(l, r, op.as_str())),
         RuntimeValue::Int(r) => return RuntimeValue::Float(eval_number_binary_operation(l, r as f64, op.as_str())),
+        RuntimeValue::String(r) => RuntimeValue::String(format!("{:.2}{}", l, r)),
         RuntimeValue::Error(e) => RuntimeValue::Error(e),
         _ => RuntimeValue::Never,
       }
@@ -73,7 +73,16 @@ fn eval_binary_expr(left: Expr, right: Expr, op: String, ctx: RefContext) -> Run
       match rhs {
         RuntimeValue::Float(r) => return RuntimeValue::Float(eval_number_binary_operation(l as f64, r, op.as_str())),
         RuntimeValue::Int(r) => return RuntimeValue::Int(eval_number_binary_operation(l, r, op.as_str())),
+        RuntimeValue::String(r) => RuntimeValue::String(format!("{}{}", l, r)),
         RuntimeValue::Error(e) => RuntimeValue::Error(e),
+        _ => RuntimeValue::Never,
+      }
+    }
+    RuntimeValue::String(l) => {
+      match rhs {
+        RuntimeValue::String(r) => RuntimeValue::String(format!("{}{}", l, r)),
+        RuntimeValue::Int(r) => RuntimeValue::String(format!("{}{}", l, r)),
+        RuntimeValue::Float(r) => RuntimeValue::String(format!("{}{:.2}", l, r)),
         _ => RuntimeValue::Never,
       }
     }
